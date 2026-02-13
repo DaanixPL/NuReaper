@@ -1,0 +1,36 @@
+version: '3.8'
+
+services:
+  api:
+    build: .
+    ports:
+      - "5000:80"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ConnectionStrings__DefaultConnection=Server=database;Database=AppDb;User Id=sa;Password=YourPassword123!;TrustServerCertificate=true
+      - Jwt__Key=your-super-secret-key-here-minimum-16-characters-long
+      - Jwt__Issuer=your-app
+      - Jwt__Audience=your-app-users
+    depends_on:
+      - database
+    networks:
+      - app-network
+
+  database:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    environment:
+      - ACCEPT_EULA=Y
+      - SA_PASSWORD=YourPassword123!
+    ports:
+      - "1433:1433"
+    volumes:
+      - sqlserver_data:/var/opt/mssql
+    networks:
+      - app-network
+
+volumes:
+  sqlserver_data:
+
+networks:
+  app-network:
+    driver: bridge
