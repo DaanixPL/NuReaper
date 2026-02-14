@@ -15,6 +15,10 @@ namespace NuReaper.Application.Responses
 
         public float ThreatLevel { get; set; }
 
+        public int TotalFindings { get; set; }
+
+        public DateTime ScannedTime { get; set; }
+
         public List<FindingSummaryDto> Findings { get; set; } = new List<FindingSummaryDto>();
     }
 }
