@@ -1,7 +1,7 @@
 using App.Api.Middleware;
 using App.Application.Behaviors;
 using App.Application.DependencyInjection;
-using App.Infrastructure.DependencyInjection;
+using NuReaper.Infrastructure.DependencyInjection;
 using MediatR;
 
 namespace NuReaper.Api

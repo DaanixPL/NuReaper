@@ -7,7 +7,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "App.Application", "App.Appl
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "App.Domain", "App.Domain\App.Domain.csproj", "{78BF2F41-6BDF-4B6D-BED2-1913CE296D34}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "App.Infrastructure", "App.Infrastructure\App.Infrastructure.csproj", "{D6731196-B7C3-4126-98BD-0168593107FD}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NuReaper.Infrastructure", "NuReaper.Infrastructure\NuReaper.Infrastructure.csproj", "{D6731196-B7C3-4126-98BD-0168593107FD}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "App.Api", "App.Api\App.Api.csproj", "{CCB5F4A9-8E0C-4F34-9BE6-365B58A9218C}"
 EndProject

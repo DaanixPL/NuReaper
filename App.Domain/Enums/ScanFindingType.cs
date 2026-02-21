@@ -11,6 +11,8 @@ namespace NuReaper.Domain.Enums
         HttpClientCall,
         WebClientCall,
         DnsCall,
+        TcpClientCall,
+        WebSocketCall,
         
         // Code Execution
         ProcessStartCall,
@@ -40,6 +42,7 @@ namespace NuReaper.Domain.Enums
         SuspiciousOnionAddress,
         SuspiciousBase64,
         
-        Unknown
+        Unknown,
+        None
     }
 }

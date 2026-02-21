@@ -4,7 +4,7 @@ namespace NuReaper.Application.DTOs
 {
     public class FindingSummaryDto
     {
-        public ScanFindingType Type { get; set; }
+        public required string Type { get; set; }
         
         public float ConfidenceScore { get; set; }
         public float DangerLevel { get; set; }
