@@ -1,9 +1,18 @@
+using dnlib.DotNet;
+using Microsoft.Extensions.Logging;
 using NuReaper.Infrastructure.Repositories.Scanners.ApiCallRegistry.Interfaces;
 
 namespace NuReaper.Infrastructure.Repositories.Scanners.ApiCallRegistry
 {
     public class IsNetworkApiCall : IIsNetworkApiCall
     {
+        private readonly ILogger<IsNetworkApiCall> _logger;
+
+        public IsNetworkApiCall(ILogger<IsNetworkApiCall> logger)        
+        {
+            _logger = logger;
+        }
+
          private static readonly string[] NetworkApiCalls = new[]
         {
             // ========== HTTP/HTTPS ==========
@@ -186,7 +195,10 @@ namespace NuReaper.Infrastructure.Repositories.Scanners.ApiCallRegistry
 
         public bool Execute(string methodFullName)
         {
-            return NetworkApiCalls.Any(api => methodFullName.Contains(api));
+            _logger.LogTrace("[IsNetworkApiCall] Checking if '{MethodFullName}' is a network API call...", methodFullName);
+            bool isNetworkApiCall = NetworkApiCalls.Any(api => methodFullName.Contains(api));
+            _logger.LogTrace("[IsNetworkApiCall] Result: {IsNetworkApiCall}", isNetworkApiCall);
+            return isNetworkApiCall;
         }
     }
 }

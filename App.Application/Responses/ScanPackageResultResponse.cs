@@ -1,3 +1,4 @@
+using App.Application.DTOs;
 using NuReaper.Application.DTOs;
 
 namespace NuReaper.Application.Responses
@@ -20,5 +21,6 @@ namespace NuReaper.Application.Responses
         public DateTime ScannedTime { get; set; }
 
         public List<FindingSummaryDto> Findings { get; set; } = new List<FindingSummaryDto>();
+        public List<DependencyDto> Dependencies { get; set; } = new List<DependencyDto>();
     }
 }

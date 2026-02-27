@@ -23,13 +23,13 @@ namespace NuReaper.Infrastructure.Repositories.Scanners.FindingCreation
             _calculateConfidenceScore = calculateConfidenceScore;
         }
 
-        public FindingSummaryDto Execute(string evidence, string? apiCall, TypeDef type, MethodDef method, int instructionIndex, int hopDepth, bool isLiteral, List<string> flowTrace)
+        public FindingSummaryDto Execute(string evidence, string? apiCall, TypeDef type, MethodDef method, int instructionIndex, int hopDepth, bool isLiteral, string flowTrace)
         {
             var findingType = _getFindingType.Execute(apiCall ?? string.Empty);
             if (findingType == ScanFindingType.Unknown)
                 findingType = _patternRegistry.IsSuspiciousString(evidence);
 
-            var dangerLevel = _calculateDangerLevel.Execute(findingType);
+            var dangerLevel = _calculateDangerLevel.Execute(findingType, hopDepth);
             var confidenceScore = _calculateConfidenceScore.Execute(hopDepth, isLiteral);
 
             return new FindingSummaryDto

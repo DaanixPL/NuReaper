@@ -1,4 +1,5 @@
 using dnlib.DotNet;
+using Microsoft.Extensions.Logging;
 using NuReaper.Application.DTOs;
 using NuReaper.Infrastructure.Repositories.Scanners.Analysis.Interfaces;
 
@@ -7,10 +8,12 @@ namespace NuReaper.Infrastructure.Repositories.Scanners.Analysis
     public class ScanModule : IScanModule
     {
         private readonly IScanMethod _scanMethod;
+        private readonly ILogger<ScanModule> _logger;
 
-        public ScanModule(IScanMethod scanMethod)
+        public ScanModule(IScanMethod scanMethod, ILogger<ScanModule> logger)
         {
             _scanMethod = scanMethod;
+            _logger = logger;
         }
 
         public List<FindingSummaryDto> Execute(string filePath)
@@ -29,7 +32,7 @@ namespace NuReaper.Infrastructure.Repositories.Scanners.Analysis
                         if (!method.HasBody || !method.Body.HasInstructions)
                             continue;
                             
-                        Console.WriteLine($"Scanning {type.FullName}::{method.Name}...");
+                        _logger.LogTrace("Scanning {TypeFullName}::{MethodName}...", type.FullName, method.Name);
                         var methodFindings = _scanMethod.Execute(method, type);
                         findings.AddRange(methodFindings);
                     }

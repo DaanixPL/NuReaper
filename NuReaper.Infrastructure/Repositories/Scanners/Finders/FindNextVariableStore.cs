@@ -14,7 +14,7 @@ namespace NuReaper.Infrastructure.Repositories.Scanners.Finders
         }
         public (int Index, Instruction Instruction)? Execute(IList<Instruction> instructions, int startIndex, int window)
         {
-            for (int i = startIndex + 1; i <= Math.Min(startIndex + window, instructions.Count - 1); i++)
+            for (int i = startIndex + 1; i < instructions.Count; i++)
             {
                 if (_isVariableStore.Execute(instructions[i]))
                     return (i, instructions[i]);

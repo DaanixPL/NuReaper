@@ -1,15 +1,22 @@
 using dnlib.DotNet.Emit;
+using Microsoft.Extensions.Logging;
 using NuReaper.Infrastructure.Repositories.Scanners.StringAnalysis.Interfaces;
 
 namespace NuReaper.Infrastructure.Repositories.Scanners.StringAnalysis
 {
     public class ReconstructStringFromChars : IReconstructStringFromChars
     {
+        private readonly ILogger<ReconstructStringFromChars> _logger;
+
+        public ReconstructStringFromChars(ILogger<ReconstructStringFromChars> logger)
+        {
+            _logger = logger;
+        }
+
         public string Execute(IList<Instruction> instructions, int startIndex)
         {
             var result = new System.Text.StringBuilder();
-            const int maxLookback = 30;
-
+            const int maxLookback = 100;
             int backwardIndex = startIndex;
             while (backwardIndex >= 0 && backwardIndex >= startIndex - maxLookback)
             {
@@ -22,6 +29,8 @@ namespace NuReaper.Infrastructure.Repositories.Scanners.StringAnalysis
 
                 backwardIndex--;
             }
+
+            _logger.LogTrace("[RECONSTRUCT] Reconstructed: {Reconstructed} from {StartIndex} looking back {Lookback} instructions.", result, startIndex, startIndex - backwardIndex);
 
             return result.ToString();
         }

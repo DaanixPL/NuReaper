@@ -1,5 +1,7 @@
+using System.Text;
 using dnlib.DotNet;
 using dnlib.DotNet.Emit;
+using Microsoft.Extensions.Logging;
 using NuReaper.Application.DTOs;
 using NuReaper.Domain.Enums;
 using NuReaper.Infrastructure.Repositories.Scanners.Detectors.Interfaces;
@@ -18,9 +20,10 @@ namespace NuReaper.Infrastructure.Repositories.Scanners.Detectors
         private readonly IFindApiCallUsingVariable _findApiCallUsingVariable;
         private readonly IFindNetworkApiCallAfterIndex _findNetworkApiCallAfterIndex;
         private readonly ICreateFinding _createFinding;
+        private readonly ILogger<Pattern5_CharOnlyInterpolation> _logger;
         
         public Pattern5_CharOnlyInterpolation(IPatternRegistry patternRegistry, ICollectStackArguments collectStackArguments, IFindNextVariableStore findNextVariableStore,
-            IFindApiCallUsingVariable findApiCallUsingVariable, IFindNetworkApiCallAfterIndex findNetworkApiCallAfterIndex, ICreateFinding createFinding)
+            IFindApiCallUsingVariable findApiCallUsingVariable, IFindNetworkApiCallAfterIndex findNetworkApiCallAfterIndex, ICreateFinding createFinding, ILogger<Pattern5_CharOnlyInterpolation> logger)
         {
             _patternRegistry = patternRegistry;
             _collectStackArguments = collectStackArguments;
@@ -28,6 +31,7 @@ namespace NuReaper.Infrastructure.Repositories.Scanners.Detectors
             _findApiCallUsingVariable = findApiCallUsingVariable;
             _findNetworkApiCallAfterIndex = findNetworkApiCallAfterIndex;
             _createFinding = createFinding;
+            _logger = logger;
         }
 
         public bool CanDetect(Instruction instruction)
@@ -44,6 +48,7 @@ namespace NuReaper.Infrastructure.Repositories.Scanners.Detectors
 
         public List<FindingSummaryDto> Detect(IList<Instruction> instructions, int instructionIndex, TypeDef type, MethodDef method, HashSet<int> processedIndices)
         {
+            var sb = new StringBuilder();
             var method2 = instructions[instructionIndex].Operand as IMethod;
             int paramCount = method2?.MethodSig?.Params.Count ?? 0;
             
@@ -52,21 +57,26 @@ namespace NuReaper.Infrastructure.Repositories.Scanners.Detectors
             var args = _collectStackArguments.Execute(instructions, instructionIndex, paramCount);
             var reconstructed = string.Join("", args);
 
+            sb.AppendLine($"[Pattern5] Detected potential char interpolation at IL_{instructions[instructionIndex].Offset:X4} in {type.FullName}::{method.Name}, reconstructed value: \"{reconstructed}\"");
+
             var suspiciousString = _patternRegistry.IsSuspiciousString(reconstructed);
             if (string.IsNullOrEmpty(reconstructed) || suspiciousString == ScanFindingType.None)
             {
+                sb.AppendLine("   --> Reconstructed string is not suspicious, skipping finding creation.");
+                _logger.LogTrace(sb.ToString());
                 return findings; // Skip if empty after reconstruction or not suspicious
             }
             // Check if after Concat there is a variable store + API call
 
-            Console.WriteLine($"Pattern5_CharOnlyInterpolation: Detected potential char interpolation at IL_{instructions[instructionIndex].Offset:X4} in {type.FullName}::{method.Name}, reconstructed value: \"{reconstructed}\"");
             var nextStore = _findNextVariableStore.Execute(instructions, instructionIndex, 5);
-            Console.WriteLine($"  --> Next variable store found at IL_{nextStore?.Instruction.Offset:X4}");
+            sb.AppendLine($"  --> Next variable store found at IL_{nextStore?.Instruction.Offset:X4}");
             if (nextStore.HasValue)
             {
                 var apiCall = _findApiCallUsingVariable.Execute(instructions, nextStore.Value.Index, 50);
                 if (!string.IsNullOrEmpty(apiCall))
                 {
+                    sb.AppendLine($"     --> Found API call \"{apiCall}\" using variable stored from char interpolation result.");
+
                     findings.Add(_createFinding.Execute(
                         reconstructed,
                         apiCall,
@@ -75,17 +85,22 @@ namespace NuReaper.Infrastructure.Repositories.Scanners.Detectors
                         instructionIndex,
                         hopDepth: 1,
                         isLiteral: false,
-                        flowTrace: new List<string> { $"constructed from char interpolation ( {suspiciousString} )" }
+                        flowTrace: sb.ToString()
                     ));
                     processedIndices.Add(instructionIndex); // Mark Concat as processed
+                }
+                else
+                {
+                    sb.AppendLine("     --> No API call found using variable stored from char interpolation result.");
                 }
             }
             else
             {
                 var apiCall = _findNetworkApiCallAfterIndex.Execute(instructions, instructionIndex);
-                Console.WriteLine($"  --> Found API call: {apiCall}");
+                sb.AppendLine($"  --> Found API call: {apiCall}");
                 if (!string.IsNullOrEmpty(apiCall))
                 {
+                    sb.AppendLine($"     --> Found API call \"{apiCall}\" directly after char interpolation result.");
                     findings.Add(_createFinding.Execute(
                         reconstructed,
                         apiCall,
@@ -94,11 +109,16 @@ namespace NuReaper.Infrastructure.Repositories.Scanners.Detectors
                         instructionIndex,
                         hopDepth: 1,
                         isLiteral: false,
-                        flowTrace: new List<string> { "constructed from char interpolation (Pattern 5)" }
+                        flowTrace: sb.ToString()
                     ));
                     processedIndices.Add(instructionIndex); // Mark Concat as processed
                 }
+                else
+                {
+                    sb.AppendLine("     --> No API call found directly after char interpolation result.");
+                }
             }
+            _logger.LogTrace(sb.ToString());
             return findings;
         }
     }

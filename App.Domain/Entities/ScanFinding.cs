@@ -17,7 +17,7 @@ namespace NuReaper.Domain.Entities
         public string? Location { get; set; } // e.g., file path, code snippet, etc.
         public string? RawData { get; set; } // optional field to store raw finding data for further analysis
 
-         public List<string> FlowTrace { get; set; } = new();  // ["Method1", "Method2", "Method3"]
+         public string? FlowTrace { get; set; } 
         public int HopDepth { get; set; }
     }
 }

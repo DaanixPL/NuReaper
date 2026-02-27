@@ -1,5 +1,3 @@
-using NuReaper.Domain.Enums;
-
 namespace NuReaper.Application.DTOs
 {
     public class FindingSummaryDto
@@ -15,6 +13,6 @@ namespace NuReaper.Application.DTOs
 
         public int HopDepth { get; set; }
 
-        public List<string>? FlowTrace { get; set; }
+        public string? FlowTrace { get; set; }
     }
 }

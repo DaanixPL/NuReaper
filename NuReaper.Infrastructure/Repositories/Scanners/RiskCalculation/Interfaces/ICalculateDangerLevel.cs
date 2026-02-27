@@ -4,6 +4,6 @@ namespace NuReaper.Infrastructure.Repositories.Scanners.RiskCalculation.Interfac
 {
     public interface ICalculateDangerLevel
     {
-        public float Execute(ScanFindingType type);
+        public float Execute(ScanFindingType type, int hopDepth);
     }
 }

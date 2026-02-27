@@ -7,7 +7,10 @@ namespace NuReaper.Infrastructure.Repositories.Scanners.FindingCreation
     {
         public ScanFindingType Execute(string apiCall)
         {
-            if (apiCall.Contains("HttpClient"))
+             if (apiCall.Contains("HttpClient") || 
+                apiCall.Contains("HttpRequestMessage") ||  
+                apiCall.Contains("HttpWebRequest") || 
+                apiCall.Contains("WebRequest"))
                 return ScanFindingType.HttpClientCall;
             if (apiCall.Contains("WebClient"))
                 return ScanFindingType.WebClientCall;

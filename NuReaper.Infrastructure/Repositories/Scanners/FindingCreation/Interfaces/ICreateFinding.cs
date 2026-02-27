@@ -13,6 +13,6 @@ namespace NuReaper.Infrastructure.Repositories.Scanners.FindingCreation.Interfac
             int instructionIndex,
             int hopDepth,
             bool isLiteral,
-            List<string> flowTrace);
+            string flowTrace);
     }
 }

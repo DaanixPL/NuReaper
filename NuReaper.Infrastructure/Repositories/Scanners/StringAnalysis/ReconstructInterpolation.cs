@@ -19,25 +19,21 @@ namespace NuReaper.Infrastructure.Repositories.Scanners.StringAnalysis
 
         public (bool IsInterpolated, string ReconstructedString, int ConcatIndex, List<int> ProcessedIndices) Execute(IList<Instruction> instructions, int startIndex)
         {
-             const int maxWindow = 50;
             var processedIndices = new List<int>();
 
-            // Szukaj String.Concat/Format w oknie
-            for (int i = startIndex; i < Math.Min(startIndex + maxWindow, instructions.Count); i++)
+            for (int i = startIndex; i < instructions.Count; i++)
             {
                 var instr = instructions[i];
 
                 if ((instr.OpCode == OpCodes.Call || instr.OpCode == OpCodes.Callvirt) &&
                     instr.Operand is IMethod method)
                 {
-                    // ✅ Check if it's String.Concat or String.Format
                     if (method.DeclaringType?.FullName == "System.String" && 
                         (method.Name == "Concat" || method.Name == "Format"))
                     {
-                        // ✅ Get parameter count
+                        // Get parameter count
                         int paramCount = method.MethodSig?.Params.Count ?? 0;
                         
-                        // ✅ Cofnij się i zbierz TYLKO argumenty na stosie
                         var args = _collectStackArguments.Execute(instructions, i, paramCount);
                         var reconstructed = string.Join("", args);
 
@@ -54,7 +50,6 @@ namespace NuReaper.Infrastructure.Repositories.Scanners.StringAnalysis
                         }
                     }
 
-                    // Stop jeśli natrafimy na inny API call
                     if (_isNetworkApiCall.Execute(method.FullName))
                         break;
                 }

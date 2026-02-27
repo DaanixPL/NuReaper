@@ -1,5 +1,7 @@
+using System.Text;
 using dnlib.DotNet;
 using dnlib.DotNet.Emit;
+using Microsoft.Extensions.Logging;
 using NuReaper.Application.DTOs;
 using NuReaper.Domain.Enums;
 using NuReaper.Infrastructure.Repositories.Scanners.Detectors.Interfaces;
@@ -14,26 +16,21 @@ namespace NuReaper.Infrastructure.Repositories.Scanners.Detectors
         private readonly IFindNetworkApiCall _findNetworkApiCall;
         private readonly ICreateFinding _createFinding;
         private readonly IPatternRegistry _patternRegistry;
-
-        public Pattern1_DirectApiCallDetector(IFindNetworkApiCall findNetworkApiCall, ICreateFinding createFinding, IPatternRegistry patternRegistry)
+        private readonly ILogger<Pattern1_DirectApiCallDetector> _logger;
+        public Pattern1_DirectApiCallDetector(IFindNetworkApiCall findNetworkApiCall, ICreateFinding createFinding, IPatternRegistry patternRegistry, ILogger<Pattern1_DirectApiCallDetector> logger)
         {
             _findNetworkApiCall = findNetworkApiCall;
             _createFinding = createFinding;
             _patternRegistry = patternRegistry;
+            _logger = logger;
         }
-
-
-
 
         public bool CanDetect(Instruction instruction)
         {
-            Console.WriteLine($"Pattern1\n   --> is a string load with value: \"{instruction.OpCode}\"");
             if (instruction.OpCode == OpCodes.Ldstr)
             {
-                Console.WriteLine("     --> CAN BE DETECTED");
                 return true;
             }
-            Console.WriteLine("     --> CAN'T BE DETECTED");
             return false;
         }
 
@@ -41,21 +38,24 @@ namespace NuReaper.Infrastructure.Repositories.Scanners.Detectors
                  HashSet<int> processedIndices)
         {
             // Pattern 1: Direct usage - string immediately used in API call
-
+            var sb = new StringBuilder();
             List<FindingSummaryDto> findings = new List<FindingSummaryDto>();
             var stringValue = (string)instructions[instructionIndex].Operand;
-            Console.WriteLine($"Pattern1_DirectApiCallDetector: Checking for direct API calls using string \"{stringValue}\" at IL_{instructions[instructionIndex].Offset:X4} in {type.FullName}::{method.Name}");
+            sb.AppendLine($"[Pattern1] Checking for direct API calls using string \"{stringValue}\" at IL_{instructions[instructionIndex].Offset:X4} in {type.FullName}::{method.Name}");
 
                 var suspiciousString = _patternRegistry.IsSuspiciousString(stringValue);
-                Console.WriteLine("-------------------------   PATTERN 1   --------------------------------");
-                Console.WriteLine($"String value: {stringValue} | Suspicious: {suspiciousString}");
-                Console.WriteLine("------------------------------------------------------------------------");
-                if (suspiciousString == ScanFindingType.None)  
+                sb.AppendLine($"   --> String value: {stringValue} | Suspicious: {suspiciousString}");
+                if (suspiciousString == ScanFindingType.None)
+                {
+                    _logger.LogTrace(sb.ToString());
                     return findings; // Skip if string is not suspicious
-                Console.WriteLine($"   --> Pattern1_DirectApiCallDetector: Analyzing instruction at IL_{instructions[instructionIndex].Offset:X4}: {instructions[instructionIndex]}");
+                }
+                sb.AppendLine($"      --> Pattern1_DirectApiCallDetector: Analyzing instruction at IL_{instructions[instructionIndex].Offset:X4}: {instructions[instructionIndex]}");
                 var directApiCall = _findNetworkApiCall.Execute(instructions, instructionIndex);
                 if (!string.IsNullOrEmpty(directApiCall))
                 {
+                    sb.AppendLine($"         --> Found direct API call \"{directApiCall}\" using string \"{stringValue}\"");
+
                     findings.Add(_createFinding.Execute(
                         stringValue,
                         directApiCall,
@@ -64,11 +64,15 @@ namespace NuReaper.Infrastructure.Repositories.Scanners.Detectors
                         instructionIndex,
                         hopDepth: 0,
                         isLiteral: true,
-                        flowTrace: new List<string> { $"direct usage ( {suspiciousString} ) in API call Pattern 1" }
+                        flowTrace: sb.ToString()
                     ));
                     processedIndices.Add(instructionIndex); // Mark as processed
                 }
-            Console.WriteLine($"Pattern1_DirectApiCallDetector: No direct API call found for string \"{stringValue}\" at IL_{instructions[instructionIndex].Offset:X4} in {type.FullName}::{method.Name}");
+                else 
+                {
+                    sb.AppendLine($"         --> No direct API call found for string \"{stringValue}\" at IL_{instructions[instructionIndex].Offset:X4} in {type.FullName}::{method.Name}");
+                }
+            _logger.LogTrace(sb.ToString());
             return findings;
         }
     }

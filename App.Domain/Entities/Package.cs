@@ -1,3 +1,5 @@
+using App.Domain.Entities;
+
 namespace NuReaper.Domain.Entities
 {
     public class Package
@@ -26,5 +28,6 @@ namespace NuReaper.Domain.Entities
 
         // Scans associated with this package
         public List<Scan> Scans { get; set; } = new List<Scan>();
+        public List<PackageDependency> Dependencies { get; set; } = new List<PackageDependency>();
     }
 }

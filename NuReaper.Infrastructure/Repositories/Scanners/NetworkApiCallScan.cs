@@ -1,8 +1,10 @@
+using Microsoft.Extensions.Logging;
 using NuReaper.Application.DTOs;
 using NuReaper.Application.Interfaces.Scanners;
 using NuReaper.Application.Responses;
 using NuReaper.Infrastructure.Repositories.Scanners.Analysis.Interfaces;
 using NuReaper.Infrastructure.Repositories.Scanners.FindingCreation.Interfaces;
+using NuReaper.Infrastructure.Repositories.Scanners.RiskCalculation.Interfaces;
 
 namespace NuReaper.Infrastructure.Repositories.Scanners
 {
@@ -10,11 +12,15 @@ namespace NuReaper.Infrastructure.Repositories.Scanners
     {
         private readonly IGetAssemblyFiles _getAssemblyFiles;
         private readonly IScanModule _scanModule;
+        private readonly ILogger<NetworkApiCallScan> _logger;
+        private readonly ICalculateThreatLevel _calculateThreatLevel;
 
-        public NetworkApiCallScan(IGetAssemblyFiles getAssemblyFiles, IScanModule scanModule)
+        public NetworkApiCallScan(IGetAssemblyFiles getAssemblyFiles, IScanModule scanModule, ILogger<NetworkApiCallScan> logger, ICalculateThreatLevel calculateThreatLevel)
         {
             _getAssemblyFiles = getAssemblyFiles;
             _scanModule = scanModule;
+            _logger = logger;
+            _calculateThreatLevel = calculateThreatLevel;
         }
         public async Task<ScanPackageResultResponse> ScanPackageAsync(string packageName, string version, string sha256Hash, string extractedPath, CancellationToken cancellationToken)
         {
@@ -27,15 +33,17 @@ namespace NuReaper.Infrastructure.Repositories.Scanners
 
                 try
                 {
-                    
+                    _logger.LogInformation("Scanning file: {File}", file);
                     var moduleFindings = _scanModule.Execute(file);
                     findings.AddRange(moduleFindings);
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"Error scanning {file}: {ex.Message}");
+                    _logger.LogError(ex, "Error scanning {File}", file);
                 }
             }
+
+            _logger.LogInformation("Completed scanning package {PackageName} version {Version}. Total findings: {TotalFindings}", packageName, version, findings.Count);
 
             var result = new ScanPackageResultResponse
             {
@@ -45,7 +53,9 @@ namespace NuReaper.Infrastructure.Repositories.Scanners
                 Sha256Hash = sha256Hash,
                 Findings = findings,
                 TotalFindings = findings.Count,
-                ScannedTime = DateTime.UtcNow
+                ScannedTime = DateTime.UtcNow,
+                ThreatLevel = _calculateThreatLevel.Execute(findings)
+
             };
             return await Task.FromResult(result);
         }

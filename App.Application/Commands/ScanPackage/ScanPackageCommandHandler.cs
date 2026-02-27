@@ -1,7 +1,9 @@
 using System.IO.Compression;
 using System.Security.Cryptography;
 using MediatR;
+using Microsoft.Extensions.Hosting;
 using NuReaper.Application.DTOs;
+using NuReaper.Application.Interfaces.Parsers;
 using NuReaper.Application.Interfaces.Scanners;
 using NuReaper.Application.Responses;
 
@@ -10,10 +12,14 @@ namespace NuReaper.Application.Commands.ScanPackage
     public class ScanPackageCommandHandler : IRequestHandler<ScanPackageCommand, ScanPackageResultResponse>
     {
         private readonly IAssemblyScanner _scanner;
+        private readonly INuspecParser _nuspecParser;
+        private readonly IHostEnvironment _env;
 
-        public ScanPackageCommandHandler(IAssemblyScanner scanner)
+        public ScanPackageCommandHandler(IAssemblyScanner scanner, IHostEnvironment env, INuspecParser nuspecParser)
         {
             _scanner = scanner;
+            _env = env;
+            _nuspecParser = nuspecParser;
         }
 
         public async Task<ScanPackageResultResponse> Handle(ScanPackageCommand request, CancellationToken cancellationToken)
@@ -26,11 +32,14 @@ namespace NuReaper.Application.Commands.ScanPackage
                 // 2. Transform URL to download link
                 string urlToDownload = request.url.Replace("nuget.org/packages", "nuget.org/api/v2/package");
 
-                //if (!urlToDownload.StartsWith("https://www.nuget.org/api/v2/package/"))
-                //{
-                //    throw new ArgumentException("Invalid URL format. Expected format: https://www.nuget.org/packages/{packageId}/{version}");
-                //}
-
+                if (_env.IsProduction())
+                {
+                    if (!urlToDownload.StartsWith("https://www.nuget.org/api/v2/package/"))
+                    {
+                        throw new ArgumentException("Invalid URL format. Expected format: https://www.nuget.org/packages/{packageId}/{version}");
+                    }
+                }
+           
                 // 3. Download package
                 string tempFilePath = await DownloadPackageAsync(urlToDownload, cancellationToken);
                 Console.WriteLine($"Package downloaded to: {tempFilePath}");
@@ -48,8 +57,8 @@ namespace NuReaper.Application.Commands.ScanPackage
                     Directory.Delete(extractionPath, true);
 
                 ZipFile.ExtractToDirectory(tempFilePath, extractionPath);
-                Console.WriteLine($"Package extracted to: {extractionPath}");
 
+                
                 // 6. Scan package
                 var result = await _scanner.ScanPackageAsync(
                     packageName,
@@ -57,8 +66,11 @@ namespace NuReaper.Application.Commands.ScanPackage
                     sha256Hash,
                     extractionPath,
                     cancellationToken);
+                
 
-                // 7. Cleanup
+                // 7. Create Dependency Graph
+                result.Dependencies = await _nuspecParser.ParseDependenciesAsync(Path.Combine(extractionPath, $"{packageName}.nuspec"), cancellationToken);
+                // 8. Cleanup
                 try
                 {
                     File.Delete(tempFilePath);
@@ -113,9 +125,21 @@ namespace NuReaper.Application.Commands.ScanPackage
         /// <summary>
         /// Downloads NuGet package from URL
         /// </summary>
-        /*
+
         private async Task<string> DownloadPackageAsync(string url, CancellationToken cancellationToken)
         {
+            if (_env.IsDevelopment())
+            {
+                if (url.StartsWith("file://") || File.Exists(url))
+                {
+                    var filePath = url.Replace("file://", "");
+                    if (File.Exists(filePath))
+                        return filePath;
+                }
+            }
+
+
+            // Remote - NuGet
             using var httpClient = new HttpClient();
             httpClient.DefaultRequestHeaders.UserAgent.ParseAdd("NuReaper/1.0");
 
@@ -142,44 +166,6 @@ namespace NuReaper.Application.Commands.ScanPackage
 
             return tempFilePath;
         }
-        */
-        private async Task<string> DownloadPackageAsync(string url, CancellationToken cancellationToken)
-{
-    // ✅ Jeśli to local path
-    if (url.StartsWith("file://") || File.Exists(url))
-    {
-        var filePath = url.Replace("file://", "");
-        if (File.Exists(filePath))
-            return filePath;
-    }
-
-    // ✅ Remote - NuGet
-    using var httpClient = new HttpClient();
-    httpClient.DefaultRequestHeaders.UserAgent.ParseAdd("NuReaper/1.0");
-
-    var response = await httpClient.GetAsync(
-        url,
-        HttpCompletionOption.ResponseHeadersRead,
-        cancellationToken);
-
-    response.EnsureSuccessStatusCode();
-
-    string fileName = response.Content.Headers.ContentDisposition?.FileNameStar
-        ?? response.Content.Headers.ContentDisposition?.FileName
-        ?? Path.GetFileName(url) + ".nupkg";
-
-    string tempDir = Path.Combine(Path.GetTempPath(), "NuReaperScans");
-    Directory.CreateDirectory(tempDir);
-
-    string tempFilePath = Path.Combine(tempDir, fileName);
-
-    using (var fileStream = new FileStream(tempFilePath, FileMode.Create, FileAccess.Write, FileShare.None))
-    {
-        await response.Content.CopyToAsync(fileStream, cancellationToken);
-    }
-
-    return tempFilePath;
-}
 
         /// <summary>
         /// Calculates SHA256 hash of a file

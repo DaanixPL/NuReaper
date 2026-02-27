@@ -21,6 +21,7 @@ namespace NuReaper.Infrastructure.DependencyInjection
             CorsServiceRegistration.AddCorsServices(services);
             DatabaseServiceRegistration.AddDatabaseServices(services, configuration);
             ScannerServiceRegistration.AddScannerServices(services);
+            ParsersServiceRegistration.AddParsersServices(services);
             return services;
         }
     }

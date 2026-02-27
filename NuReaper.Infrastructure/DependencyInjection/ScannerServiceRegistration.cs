@@ -71,6 +71,7 @@ namespace NuReaper.Infrastructure.DependencyInjection
             // Risk Calculation
             services.AddScoped<ICalculateConfidenceScore, CalculateConfidenceScore>();
             services.AddScoped<ICalculateDangerLevel, CalculateDangerLevel>();
+            services.AddScoped<ICalculateThreatLevel, CalculateThreatLevel>();
 
             // String analysis
             services.AddScoped<IReconstructFromInterpolatedHandler, ReconstructFromInterpolatedHandler>();
