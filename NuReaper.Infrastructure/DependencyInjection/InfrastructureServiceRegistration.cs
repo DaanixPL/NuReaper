@@ -4,6 +4,7 @@ using NuReaper.Infrastructure.Repositories;
 using Microsoft.Extensions.Configuration;
 using NuReaper.Application.Interfaces.Scanners;
 using NuReaper.Infrastructure.Repositories.Scanners;
+using App.Application.Interfaces.Dependencies;
 
 
 
@@ -17,6 +18,7 @@ namespace NuReaper.Infrastructure.DependencyInjection
             services.AddScoped<IPackageRepository, PackageRepository>();
             services.AddScoped<IScanRepository, ScanRepository>();
             services.AddScoped<IAssemblyScanner, NetworkApiCallScan>();
+            services.AddScoped<IDependencyRepository, DependencyGraphBuilder>();
 
             CorsServiceRegistration.AddCorsServices(services);
             DatabaseServiceRegistration.AddDatabaseServices(services, configuration);

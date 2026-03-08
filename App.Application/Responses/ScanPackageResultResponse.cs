@@ -22,5 +22,6 @@ namespace NuReaper.Application.Responses
 
         public List<FindingSummaryDto> Findings { get; set; } = new List<FindingSummaryDto>();
         public List<DependencyDto> Dependencies { get; set; } = new List<DependencyDto>();
+        public DependencyGraphDto? DependencyGraph { get; set; }
     }
 }

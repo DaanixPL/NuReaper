@@ -1,5 +1,6 @@
 ﻿using NuReaper.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
+using App.Domain.Entities;
 
 namespace App.Infrastructure.Context
 {
@@ -11,6 +12,7 @@ namespace App.Infrastructure.Context
         // Tables
         public DbSet<Scan> Scans { get; set; }
         public DbSet<Package> Packages { get; set; }
+        public DbSet<PackageDependency> PackageDependencies { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

@@ -21,6 +21,7 @@ namespace NuReaper.Api
             builder.Services.AddInfrastructureServices(builder.Configuration);
 
             builder.Services.AddSwaggerServices();
+            builder.Services.AddHttpClient();
             // builder.Services.AddAuthorization();
 
             builder.Services.AddTransient(typeof(IPipelineBehavior<,>), typeof(ValidationBehavior<,>));

@@ -1,5 +1,6 @@
 using System.IO.Compression;
 using System.Security.Cryptography;
+using App.Application.Interfaces.Dependencies;
 using MediatR;
 using Microsoft.Extensions.Hosting;
 using NuReaper.Application.DTOs;
@@ -13,13 +14,15 @@ namespace NuReaper.Application.Commands.ScanPackage
     {
         private readonly IAssemblyScanner _scanner;
         private readonly INuspecParser _nuspecParser;
+        private readonly IDependencyRepository _dependencyRepository;
         private readonly IHostEnvironment _env;
 
-        public ScanPackageCommandHandler(IAssemblyScanner scanner, IHostEnvironment env, INuspecParser nuspecParser)
+        public ScanPackageCommandHandler(IAssemblyScanner scanner, IHostEnvironment env, INuspecParser nuspecParser, IDependencyRepository dependencyRepository)
         {
             _scanner = scanner;
             _env = env;
             _nuspecParser = nuspecParser;
+            _dependencyRepository = dependencyRepository;
         }
 
         public async Task<ScanPackageResultResponse> Handle(ScanPackageCommand request, CancellationToken cancellationToken)
@@ -69,6 +72,13 @@ namespace NuReaper.Application.Commands.ScanPackage
                 
 
                 // 7. Create Dependency Graph
+                result.DependencyGraph = await _dependencyRepository.BuildGraphAsync(
+                    packageName,
+                    version,
+                    20,
+                    extractionPath,
+                    null,
+                    cancellationToken);
                 result.Dependencies = await _nuspecParser.ParseDependenciesAsync(Path.Combine(extractionPath, $"{packageName}.nuspec"), cancellationToken);
                 // 8. Cleanup
                 try
