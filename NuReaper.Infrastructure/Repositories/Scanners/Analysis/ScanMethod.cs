@@ -14,7 +14,7 @@ namespace NuReaper.Infrastructure.Repositories.Scanners.Analysis
         private readonly IEnumerable<IPatternDetector> _patternDetectors;
         private readonly ILogger<ScanMethod> _logger;
 
-        public ScanMethod(IPatternRegistry patternRegistry, IEnumerable<IPatternDetector> patternDetectors, ILogger<ScanMethod> logger)
+        public ScanMethod(IEnumerable<IPatternDetector> patternDetectors, ILogger<ScanMethod> logger)
         {
             _patternDetectors = patternDetectors;
             _logger = logger;

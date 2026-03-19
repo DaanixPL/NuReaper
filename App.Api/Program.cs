@@ -27,7 +27,7 @@ namespace NuReaper.Api
             builder.Services.AddTransient(typeof(IPipelineBehavior<,>), typeof(ValidationBehavior<,>));
 
             Log.Logger = new LoggerConfiguration()
-                .MinimumLevel.Verbose() // żeby LogTrace działał
+                .MinimumLevel.Debug() // żeby LogTrace działał
                 .WriteTo.Console(outputTemplate: "[{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} {Level:u3}] {Message:lj}{NewLine}{Exception}")
                 .WriteTo.File(
                     path: "logs/log-.txt",

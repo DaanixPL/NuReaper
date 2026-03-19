@@ -5,10 +5,7 @@ namespace NuReaper.Application.Interfaces.Scanners
     public interface IAssemblyScanner
     {
         Task<ScanPackageResultResponse> ScanPackageAsync(
-            string packageName,
-            string version,
-            string sha256Hash,
-            string extractedPath,
+            string url,
             CancellationToken cancellationToken);
     }
 }

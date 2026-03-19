@@ -1,27 +1,21 @@
 using App.Application.DTOs;
+using App.Application.DTOs.Graph;
 using NuReaper.Application.DTOs;
 
 namespace NuReaper.Application.Responses
 {
     public record ScanPackageResultResponse
     {
-        public required string PackageName { get; set; }
-        public required string Version { get; set; }
-        public required string Author { get; set; }
+        public required string RootPackageName { get; set; }
+        public required string RootPackageVersion { get; set; }
 
-        public required string Sha256Hash { get; set; }
+        public int TotalPackages { get; set; }
+        public int TotalFindingsFromAllPackages { get; set; }
 
-        public long Downloads { get; set; }
-        public long FileSize { get; set; }
+        public DateTime ScannedTimeAllPackages { get; set; }
+        public float ThreatLevelAllPackages { get; set; }
 
-        public float ThreatLevel { get; set; }
-
-        public int TotalFindings { get; set; }
-
-        public DateTime ScannedTime { get; set; }
-
-        public List<FindingSummaryDto> Findings { get; set; } = new List<FindingSummaryDto>();
-        public List<DependencyDto> Dependencies { get; set; } = new List<DependencyDto>();
+        public List<PackageDto> Packages { get; set; } = new List<PackageDto>();
         public DependencyGraphDto? DependencyGraph { get; set; }
     }
 }
