@@ -1,5 +1,6 @@
 using System.IO.Compression;
 using Microsoft.Extensions.Hosting;
+using NuReaper.Infrastructure.Repositories.FileHelpers.interfaces;
 using NuReaper.Infrastructure.Repositories.FileHelpers.Interfaces;
 
 namespace NuReaper.Infrastructure.Repositories.FileHelpers
@@ -7,9 +8,13 @@ namespace NuReaper.Infrastructure.Repositories.FileHelpers
     public class DownloadPackageAsync : IDownloadPackageAsync
     {
         private readonly IHostEnvironment _env;
-        public DownloadPackageAsync(IHostEnvironment env)
+        private readonly IExtractPackageInfo _extractPackageInfo;
+        private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, SemaphoreSlim> _extractionLocks = new();
+
+        public DownloadPackageAsync(IHostEnvironment env, IExtractPackageInfo extractPackageInfo)
         {
             _env = env;
+            _extractPackageInfo = extractPackageInfo;
         }
         public async Task<string> ExecuteAsync(string url, CancellationToken cancellationToken)
         {
@@ -23,33 +28,37 @@ namespace NuReaper.Infrastructure.Repositories.FileHelpers
                 }
             }
 
+            var lockKey = url.ToLowerInvariant();
+            var semaphore = _extractionLocks.GetOrAdd(lockKey, _ => new SemaphoreSlim(1, 1));
 
-            // Remote - NuGet
-            using var httpClient = new HttpClient();
-            httpClient.DefaultRequestHeaders.UserAgent.ParseAdd("NuReaper/1.0");
-
-            var response = await httpClient.GetAsync(
-                url,
-                HttpCompletionOption.ResponseHeadersRead,
-                cancellationToken);
-
-            response.EnsureSuccessStatusCode();
-
-            string fileName = response.Content.Headers.ContentDisposition?.FileNameStar
-                ?? response.Content.Headers.ContentDisposition?.FileName
-                ?? Path.GetFileName(url) + ".nupkg";
-
-            string tempDir = Path.Combine(Path.GetTempPath(), "NuReaperScans");
-            Directory.CreateDirectory(tempDir);
-
-            string tempFilePath = Path.Combine(tempDir, fileName);
-
-            using (var fileStream = new FileStream(tempFilePath, FileMode.Create, FileAccess.Write, FileShare.None))
+            await semaphore.WaitAsync(cancellationToken);
+            try
             {
-                await response.Content.CopyToAsync(fileStream, cancellationToken);
-            }
+                var (packageName, version) = _extractPackageInfo.Execute(url);
+                string fileName = $"{packageName}_{version}.nupkg";
+                string tempDir = Path.Combine(Path.GetTempPath(), "NuReaperScans");
+                Directory.CreateDirectory(tempDir);
+                string tempFilePath = Path.Combine(tempDir, fileName);
 
-             return await Task.FromResult(tempFilePath);
+                if (File.Exists(tempFilePath))
+                    return tempFilePath;
+                
+                using var httpClient = new HttpClient();
+                var response = await httpClient.GetAsync(url, cancellationToken);
+
+                response.EnsureSuccessStatusCode();
+
+                using (var fileStream = new FileStream(tempFilePath, FileMode.Create, FileAccess.Write, FileShare.None))
+                {
+                    await response.Content.CopyToAsync(fileStream, cancellationToken);
+                }
+
+                return tempFilePath;
+            }
+            finally
+            {
+                semaphore.Release();
+            }
         }
     }
 }

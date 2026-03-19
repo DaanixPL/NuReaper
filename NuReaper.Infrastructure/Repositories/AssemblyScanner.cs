@@ -26,6 +26,8 @@ namespace NuReaper.Infrastructure.Repositories
 
         public async Task<ScanPackageResultResponse> ScanPackageAsync(string url, CancellationToken cancellationToken)
         {
+            var startTime = DateTime.UtcNow;
+            // TODO: Mozna dodac cache wynikow + dodawanie do db. Oraz zapis w db czas skanowania.
             int maxDepth = 20; // TODO: Make this configurable
             var graph = await _dependencyRepository.BuildGraphAsync(url, maxDepth, null, cancellationToken);
 
@@ -35,11 +37,11 @@ namespace NuReaper.Infrastructure.Repositories
                 RootPackageVersion = graph.RootPackage.Split('/')[1],
             };
 
-            foreach (var node in graph.Nodes)
+            var scanTasks = graph.Nodes.Select(async node =>
             {
-               var now = DateTime.UtcNow;
+                var now = DateTime.UtcNow;
                 var package = await _networkApiCallScan.Execute($"https://www.nuget.org/api/v2/package/{node.Name}/{node.Version}", cancellationToken);
-                resault.Packages.Add(new PackageDto
+                return new PackageDto
                 {
                     PackageName = node.Name,
                     Author = "Nuget", // dodac
@@ -48,13 +50,20 @@ namespace NuReaper.Infrastructure.Repositories
                     ThreatLevel = _calculateThreatLevel.Execute(package.Findings),
                     TotalFindings = package.Findings.Count,
                     ScannedTime = new DateTime(now.Year, now.Month, now.Day, now.Hour, now.Minute, now.Second, DateTimeKind.Utc),
-                });
-            }
+                };
+            });
+
+            var packages = await Task.WhenAll(scanTasks);
+            resault.Packages.AddRange(packages);
+
             resault.TotalPackages = resault.Packages.Count;
             resault.TotalFindingsFromAllPackages = resault.Packages.Sum(p => p.TotalFindings);
             resault.ThreatLevelAllPackages = _calculateThreatLevel.Execute(resault.Packages.SelectMany(p => p.Findings).ToList()); // lepiej to zrobic
             resault.DependencyGraph = graph;
+            resault.ScannedTimeAllPackages = DateTime.UtcNow;
 
+            Console.WriteLine($"[&] findings in {(DateTime.UtcNow - startTime).TotalSeconds} seconds.");
+            // TODO: Tutaj czysczenie pakietow skanowanych
             return resault;
         }
     }

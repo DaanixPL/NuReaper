@@ -5,17 +5,31 @@ namespace NuReaper.Infrastructure.Repositories.FileHelpers
 {
     public class ExtractPackage : IExtractPackage
     {
-        public string Execute(string tempFilePath)
+        private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, SemaphoreSlim> _extractionLocks = new();
+
+        public async Task<string> ExecuteAsync(string tempFilePath, CancellationToken cancellationToken)
         {
-            string extractionPath = Path.Combine(
-                Path.GetDirectoryName(tempFilePath) ?? Directory.GetCurrentDirectory(),
-                "Extracted");
+            string extractDir = Path.Combine(
+                Path.GetDirectoryName(tempFilePath)!,
+                Path.GetFileNameWithoutExtension(tempFilePath));
 
-            if (Directory.Exists(extractionPath))
-                Directory.Delete(extractionPath, true);
+            var lockKey = extractDir.ToLowerInvariant();
+            var semaphore = _extractionLocks.GetOrAdd(lockKey, _ => new SemaphoreSlim(1, 1));
 
-            ZipFile.ExtractToDirectory(tempFilePath, extractionPath);
-            return extractionPath;
+            await semaphore.WaitAsync(cancellationToken);
+            try
+            {
+                if (Directory.Exists(extractDir))
+                    return extractDir;
+
+                await Task.Run(() => ZipFile.ExtractToDirectory(tempFilePath, extractDir, overwriteFiles: false), cancellationToken);
+            }
+            finally
+            {
+                semaphore.Release();
+            }
+
+            return extractDir;
         }
     }
 }
