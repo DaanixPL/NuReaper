@@ -1,4 +1,4 @@
-using App.Infrastructure.Context;
+using NuReaper.Infrastructure.Context;
 using Microsoft.EntityFrameworkCore;
 using NuReaper.Domain.Abstractions;
 using NuReaper.Domain.Entities;

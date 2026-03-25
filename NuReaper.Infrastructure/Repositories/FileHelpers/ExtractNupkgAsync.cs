@@ -22,7 +22,7 @@ namespace NuReaper.Infrastructure.Repositories.FileHelpers
             var lockKey = extractDir.ToLowerInvariant();
             var semaphore = _extractionLocks.GetOrAdd(lockKey, _ => new SemaphoreSlim(1, 1));
 
-            await semaphore.WaitAsync(cancellationToken);
+            await semaphore.WaitAsync(cancellationToken).ConfigureAwait(false);
             try
             {
                 if (Directory.Exists(extractDir))
@@ -33,9 +33,37 @@ namespace NuReaper.Infrastructure.Repositories.FileHelpers
 
                 _logger.LogInformation("Extracting {NupkgPath}...", nupkgPath);
             
-                await Task.Run(() => 
-                    ZipFile.ExtractToDirectory(nupkgPath, extractDir, overwriteFiles: true), 
-                    cancellationToken);
+                await using (var fs = new FileStream(nupkgPath, FileMode.Open, FileAccess.Read, FileShare.Read, 4096, FileOptions.Asynchronous))
+                using (var archive = new ZipArchive(fs, ZipArchiveMode.Read, leaveOpen: false))
+                {
+                    foreach (var entry in archive.Entries)
+                    {
+                        cancellationToken.ThrowIfCancellationRequested();
+
+                        var destinationPath = Path.Combine(extractDir, entry.FullName);
+                        if (!destinationPath.StartsWith(extractDir, StringComparison.OrdinalIgnoreCase))
+                        {
+                            _logger.LogWarning("Skipping potentially unsafe entry: {EntryName}", entry.FullName);
+                            continue;
+                        }
+
+                        if (!Directory.Exists(Path.GetDirectoryName(destinationPath)))
+                        {
+                            var directory = Path.GetDirectoryName(destinationPath);
+                            if (!string.IsNullOrEmpty(directory) && !Directory.Exists(directory))
+                                Directory.CreateDirectory(directory);
+                        }
+
+                        if (string.IsNullOrEmpty(entry.Name))
+                            continue;
+
+                        await using (var entryStream = entry.Open())
+                        await using (var destStream = new FileStream(destinationPath, FileMode.Create, FileAccess.Write, FileShare.None, 8192, FileOptions.Asynchronous))
+                        {
+                            await entryStream.CopyToAsync(destStream, 8192, cancellationToken).ConfigureAwait(false);
+                        }
+                    }
+                }
                 
                 _logger.LogInformation("Extracted to: {ExtractDir}", extractDir);
                 
@@ -45,6 +73,10 @@ namespace NuReaper.Infrastructure.Repositories.FileHelpers
             {
                 _logger.LogError(ex, "Failed to extract {NupkgPath}", nupkgPath);
                 throw;
+            }
+            finally
+            {
+                semaphore.Release();
             }
         }
     }

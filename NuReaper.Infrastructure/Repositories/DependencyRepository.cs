@@ -1,6 +1,6 @@
-using App.Domain.Abstractions;
-using App.Domain.Entities;
-using App.Infrastructure.Context;
+using NuReaper.Domain.Abstractions;
+using NuReaper.Domain.Entities;
+using NuReaper.Infrastructure.Context;
 using Microsoft.EntityFrameworkCore;
 
 namespace NuReaper.Infrastructure.Repositories

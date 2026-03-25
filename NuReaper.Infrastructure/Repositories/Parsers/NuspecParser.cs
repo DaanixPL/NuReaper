@@ -1,4 +1,4 @@
-using App.Application.DTOs;
+using NuReaper.Application.DTOs;
 using Microsoft.Extensions.Logging;
 using NuReaper.Application.Interfaces.Parsers;
 using NuReaper.Infrastructure.Repositories.Parsers.Strategies.Interfaces;

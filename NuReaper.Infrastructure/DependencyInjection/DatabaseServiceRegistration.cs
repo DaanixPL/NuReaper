@@ -1,4 +1,4 @@
-﻿using App.Infrastructure.Context;
+﻿using NuReaper.Infrastructure.Context;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;

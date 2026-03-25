@@ -1,5 +1,5 @@
 using NuReaper.Domain.Abstractions;
-using App.Infrastructure.Context;
+using NuReaper.Infrastructure.Context;
 
 namespace NuReaper.Infrastructure.Repositories
 {

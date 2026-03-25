@@ -1,5 +1,5 @@
 using System.Xml.Linq;
-using App.Application.DTOs;
+using NuReaper.Application.DTOs;
 using NuReaper.Infrastructure.Repositories.Parsers.Utils.Interfaces;
 
 namespace NuReaper.Infrastructure.Repositories.Parsers.Utils

@@ -3,7 +3,7 @@ using dnlib.DotNet.Emit;
 using NuReaper.Infrastructure.Repositories.Scanners.ApiCallRegistry.Interfaces;
 using NuReaper.Infrastructure.Repositories.Scanners.Finders.Interfaces;
 
-namespace App.Infrastructure.Repositories.Scanners.Finders
+namespace NuReaper.Infrastructure.Repositories.Scanners.Finders
 {
     public class FindNetworkApiCall : IFindNetworkApiCall
     {

@@ -1,4 +1,6 @@
-using App.Application.DTOs;
+using System.Collections.Immutable;
+using NuReaper.Application.DTOs;
+using NuReaper.Infrastructure.Repositories.GraphBuilders.HelperClasses;
 
 namespace NuReaper.Infrastructure.Repositories.GraphBuilders.Interfaces
 {
@@ -9,10 +11,8 @@ namespace NuReaper.Infrastructure.Repositories.GraphBuilders.Interfaces
             string packageVersion,
             string nuspecPath,
             string? targetFramework,
-            DependencyGraphDto graph,
-            HashSet<string> visited,
-            Stack<string> currentPath,
-            Dictionary<string, string> nodeIdMap,
+            GraphBuildingContext context,
+            ImmutableStack<string> currentPath,
             int depth,
             int maxDepth,
             CancellationToken cancellationToken);

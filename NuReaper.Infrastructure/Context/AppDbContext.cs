@@ -1,8 +1,7 @@
 ﻿using NuReaper.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
-using App.Domain.Entities;
 
-namespace App.Infrastructure.Context
+namespace NuReaper.Infrastructure.Context
 {
     public class AppDbContext : DbContext
     {

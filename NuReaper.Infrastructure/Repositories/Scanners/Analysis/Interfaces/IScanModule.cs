@@ -4,6 +4,6 @@ namespace NuReaper.Infrastructure.Repositories.Scanners.Analysis.Interfaces
 {
     public interface IScanModule
     {
-        public List<FindingSummaryDto> Execute(string filePath);
+        public Task<List<FindingSummaryDto>> Execute(string filePath, CancellationToken cancellationToken = default);
     }
 }

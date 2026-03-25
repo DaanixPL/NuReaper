@@ -1,12 +1,14 @@
-using App.Application.DTOs;
-using App.Application.DTOs.Graph;
-using App.Application.Interfaces.Dependencies;
+using System.Collections.Immutable;
+using NuReaper.Application.DTOs;
+using NuReaper.Application.DTOs.Graph;
+using NuReaper.Application.Interfaces.Dependencies;
 using Microsoft.Extensions.Logging;
+using NuReaper.Infrastructure.Repositories.GraphBuilders.HelperClasses;
 using NuReaper.Infrastructure.Repositories.GraphBuilders.Interfaces;
 
 namespace NuReaper.Infrastructure.Repositories
 {
-    public class DependencyGraphBuilder : IDependencyRepository
+    public class DependencyGraphBuilder : IDependencyGraphBuilder
     {
         private readonly HttpClient _httpClient;
         private readonly IBuildRecursiveAsync _buildRecursiveAsync;
@@ -24,6 +26,7 @@ namespace NuReaper.Infrastructure.Repositories
             _buildRecursiveAsync = buildRecursiveAsync;
             _breadthFirstSearch = breadthFirstSearch;
             _httpClient.DefaultRequestHeaders.UserAgent.ParseAdd("NuReaper/1.0");
+            _httpClient.Timeout = TimeSpan.FromSeconds(15);
             _logger = logger;
             _downloadAndExtractNuspecAsync = downloadAndExtractNuspecAsync;
         }
@@ -40,21 +43,6 @@ namespace NuReaper.Infrastructure.Repositories
             string rootPackageName = uri.AbsolutePath.Substring(idx + "/package/".Length).TrimStart('/').Split('/')[0];
             string rootPackageVersion = uri.AbsolutePath.Substring(idx + "/package/".Length).TrimStart('/').Split('/')[1];
 
-
-
-            var graph = new DependencyGraphDto
-            {
-                RootPackage = uri.AbsolutePath.Substring(idx + "/package/".Length).TrimStart('/'),
-                Nodes = new List<GraphNodeDto>(),
-                Edges = new List<GraphEdgeDto>(),
-                Cycles = new List<CycleDto>(),
-                GeneratedAt = DateTime.UtcNow
-            };
-
-            var visited = new HashSet<string>();
-            var currentPath = new Stack<string>();
-            var nodeIdMap = new Dictionary<string, string>();
-
             if (string.IsNullOrEmpty(rootPackageName) || string.IsNullOrEmpty(rootPackageVersion))
                 throw new ArgumentException("Package name or version is missing in the URL.");
 
@@ -63,7 +51,7 @@ namespace NuReaper.Infrastructure.Repositories
             if (string.IsNullOrEmpty(nuspecPath))
             {
                 _logger.LogError("Failed to download/extract .nuspec for {PackageName} {PackageVersion}", rootPackageName, rootPackageVersion);
-                return graph;
+                return CreateEmptyGraph(rootPackageName, rootPackageVersion);
             }
 
             if (Directory.Exists(nuspecPath))
@@ -76,29 +64,37 @@ namespace NuReaper.Infrastructure.Repositories
                 else
                 {
                     _logger.LogError(".nuspec not found in directory: {NuspecDirectory}", candidate);
-                    return graph;
+                    return CreateEmptyGraph(rootPackageName, rootPackageVersion);
                 }
             }
             else if(!File.Exists(nuspecPath))
             {
                 _logger.LogError(".nuspec file not found: {NuspecPath}", nuspecPath);
-                return graph;
+                return CreateEmptyGraph(rootPackageName, rootPackageVersion);
             }
+
+            var context = new GraphBuildingContext();
+            var emptyPath = ImmutableStack<string>.Empty;
 
             await _buildRecursiveAsync.Execute(
                 rootPackageName,
                 rootPackageVersion,
                 nuspecPath,
                 null,
-                graph,
-                visited,
-                currentPath,
-                nodeIdMap,
+                context,
+                emptyPath,
                 depth: 0,
                 maxDepth,
                 cancellationToken);
 
-            return graph;
+            return new DependencyGraphDto
+            {
+                RootPackage = $"{rootPackageName}@{rootPackageVersion}",
+                Nodes = context.Nodes.ToList(),
+                Edges = context.Edges.ToList(),
+                Cycles = context.Cycles.ToList(),
+                GeneratedAt = DateTime.UtcNow
+            };
         }
 
         public async Task<bool> HasCyclesAsync(
@@ -126,5 +122,19 @@ namespace NuReaper.Infrastructure.Repositories
             
             return await _breadthFirstSearch.Execute(graph, fromPackage, toPackage);
         }
+        // interface?
+        private DependencyGraphDto CreateEmptyGraph(string packageName, string version)
+        {
+            return new DependencyGraphDto
+            {
+                RootPackage = $"{packageName}@{version}",
+                Nodes = new List<GraphNodeDto>(),
+                Edges = new List<GraphEdgeDto>(),
+                Cycles = new List<CycleDto>(),
+                GeneratedAt = DateTime.UtcNow
+            };
+        }
+
     }
+    
 }

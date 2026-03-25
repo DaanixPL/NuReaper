@@ -1,4 +1,4 @@
-using App.Application.DTOs;
+using NuReaper.Application.DTOs;
 using NuReaper.Infrastructure.Repositories.GraphBuilders.Interfaces;
 
 namespace NuReaper.Infrastructure.Repositories.GraphBuilders

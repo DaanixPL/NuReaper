@@ -1,227 +1,211 @@
-# Clean Architecture .NET 8 API Template
+# NuReaper — NuGet Package Security Scanner
 
-Enterprise-grade .NET 8 API template with Clean Architecture, CQRS pattern, JWT authentication, and Docker deployment.
+> ⚠️ **Work in Progress** — The project is actively developed. Core scanning engine is functional; database persistence, caching, and full test coverage are planned for upcoming iterations.
 
-## 🏗️ Architecture
+**NuReaper** is a .NET 8 backend API that automatically analyzes the security of NuGet packages. You provide a link to any NuGet package, and the system recursively downloads its entire dependency tree, decompiles the compiled code, and scans every method for malicious patterns — returning a detailed threat report.
 
-- **Clean Architecture** - Separation of concerns with Domain, Application, Infrastructure, and API layers
-- **CQRS Pattern** - Command Query Responsibility Segregation with MediatR
-- **JWT Authentication** - Secure token-based authentication
-- **Entity Framework Core** - Modern ORM with SQL Server
-- **FluentValidation** - Robust input validation
-- **AutoMapper** - Object mapping
-- **Docker** - Containerized deployment
-
-## 🚀 Features
-
-### ✅ Core Features
-- Clean Architecture implementation
-- CQRS with MediatR
-- JWT authentication & authorization
-- Entity Framework Core with SQL Server
-- FluentValidation for input validation
-- AutoMapper for object mapping
-- Global exception handling
-- Swagger/OpenAPI documentation
-- Docker containerization
-
-### ✅ Security
-- BCrypt password hashing
-- JWT token generation
-- Authorization attributes
-- Input validation
-- SQL injection protection
-
-### ✅ Development
-- Hot reload support
-- Swagger UI for API testing
-- Comprehensive error handling
-- Logging configuration
-- Development/Production environments
-
-## 📁 Project Structure
-
-```
-App/
-├── App.Api/                 # API Layer (Controllers, Middleware)
-├── App.Application/         # Application Layer (Commands, Queries, Handlers)
-├── App.Domain/             # Domain Layer (Entities, Interfaces)
-├── App.Infrastructure/     # Infrastructure Layer (Database, External Services)
-├── Dockerfile              # Docker configuration
-├── docker-compose.yml      # Docker Compose setup
-└── README.md              # This file
-```
-
-## 🛠️ Setup & Installation
-
-### Prerequisites
-- .NET 8 SDK
-- SQL Server (or Docker)
-- Docker (optional, for containerized deployment)
-
-### Local Development
-
-1. **Clone the repository**
-   ```bash
-   git clone <repository-url>
-   cd App
-   ```
-
-2. **Update connection string**
-   ```json
-   // appsettings.json
-   {
-     "ConnectionStrings": {
-       "DefaultConnection": "Server=localhost;Database=AppDb;User Id=sa;Password=YourPassword123!;TrustServerCertificate=true"
-     }
-   }
-   ```
-
-3. **Run database migrations**
-   ```bash
-   cd App.Api
-   dotnet ef database update
-   ```
-
-4. **Run the application**
-   ```bash
-   dotnet run
-   ```
-
-5. **Access the API**
-   - API: http://localhost:5000
-   - Swagger UI: http://localhost:5000/swagger
-
-### Docker Deployment
-
-1. **Build and run with Docker Compose**
-   ```bash
-   docker-compose up --build
-   ```
-
-2. **Access the application**
-   - API: http://localhost:5000
-   - Swagger UI: http://localhost:5000/swagger
-
-## 🔐 Authentication
-
-### JWT Configuration
-```json
-{
-  "Jwt": {
-    "Key": "your-super-secret-key-here-minimum-16-characters-long",
-    "Issuer": "your-app",
-    "Audience": "your-app-users"
-  }
-}
-```
-
-### API Endpoints
-
-#### Public Endpoints
-- `POST /api/users` - Register new user
-- `POST /api/users/login` - Login user
-
-#### Protected Endpoints (Require JWT Token)
-- `GET /api/users/{id}` - Get user by ID
-- `GET /api/users/by-email?email=...` - Get user by email
-- `GET /api/users/by-username?username=...` - Get user by username
-- `PUT /api/users/{id}` - Update user
-- `DELETE /api/users/{id}` - Delete user
-
-### Using JWT Token
-```bash
-# Login to get token
-curl -X POST "http://localhost:5000/api/users/login" \
-  -H "Content-Type: application/json" \
-  -d '{"emailOrUsername": "user@example.com", "password": "password123"}'
-
-# Use token in subsequent requests
-curl -X GET "http://localhost:5000/api/users/1" \
-  -H "Authorization: Bearer YOUR_JWT_TOKEN"
-```
-
-## 🧪 Testing
-
-### Swagger UI
-1. Navigate to http://localhost:5000/swagger
-2. Use the interactive API documentation
-3. Test endpoints directly from the browser
-
-### Postman/Insomnia
-1. Import the API endpoints
-2. Set up authentication with JWT tokens
-3. Test all CRUD operations
-
-## 🔧 Configuration
-
-### Environment Variables
-```bash
-# Development
-ASPNETCORE_ENVIRONMENT=Development
-
-# Production
-ASPNETCORE_ENVIRONMENT=Production
-```
-
-### Database Configuration
-```json
-{
-  "ConnectionStrings": {
-    "DefaultConnection": "Server=localhost;Database=AppDb;User Id=sa;Password=YourPassword123!;TrustServerCertificate=true"
-  }
-}
-```
-
-## 📦 Dependencies
-
-### Core Packages
-- `Microsoft.AspNetCore.Authentication.JwtBearer` - JWT authentication
-- `MediatR` - CQRS pattern implementation
-- `AutoMapper` - Object mapping
-- `FluentValidation` - Input validation
-- `Entity Framework Core` - Database ORM
-- `BCrypt.Net-Next` - Password hashing
-
-## 🚀 Deployment
-
-### Docker
-```bash
-# Build and run
-docker-compose up --build
-
-# Run in background
-docker-compose up -d
-
-# Stop services
-docker-compose down
-```
-
-### Azure/AWS
-1. Build the application
-2. Deploy to your cloud provider
-3. Configure environment variables
-4. Set up database connection
-
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests if applicable
-5. Submit a pull request
-
-## 📄 License
-
-This project is licensed under the MIT License.
-
-## 🆘 Support
-
-For support and questions:
-- Create an issue in the repository
-- Check the documentation
-- Review the code examples
+> 🔍 **For non-technical readers:** Think of it like installing an app on your phone. Along with it, dozens of smaller libraries get installed automatically. NuReaper inspects every single one of them — looking at the actual compiled binary code — and detects whether any of them try to connect to suspicious servers, execute hidden code, or obfuscate their true behavior.
 
 ---
 
-**Built with ❤️ using Clean Architecture and .NET 8** 
+## 🎯 What does NuReaper do?
+
+Send a single HTTP request with a NuGet package URL, and NuReaper will:
+
+1. **Build the full dependency tree** — recursively fetches and maps all packages the target depends on (up to 20 levels deep), detecting circular dependencies along the way
+2. **Download and verify each package** — fetches the `.nupkg` file and computes its SHA-256 hash
+3. **Analyze compiled IL code** — decompiles .NET assemblies and scans every method of every class for suspicious patterns
+4. **Score the threat level** — based on detected patterns, finding count, type diversity, confidence scores, and obfuscation depth
+5. **Return a full report** — with per-package findings, code flow traces, and the complete dependency graph
+
+---
+
+## 🔬 Detected Malicious Code Patterns
+
+The engine analyzes code at the IL (Intermediate Language) instruction level and recognizes **7 patterns** characteristic of malicious software:
+
+| # | Pattern | Description |
+|---|---------|-------------|
+| 1 | **Direct API Call** | Suspicious string immediately used in a network call |
+| 2 | **String Assigned** | URL assigned to a variable, then passed to a network call |
+| 3 | **String Construction** | URL built by concatenation (`"http://" + var + "/path"`) — obfuscation technique |
+| 4 | **String Interpolation** | URL assembled via interpolation (`$"{part1}{part2}"`) |
+| 5 | **Char-Only Interpolation** | URL built char-by-char from a char array — advanced obfuscation |
+| 6 | **DefaultInterpolatedStringHandler** | Low-level interpolation mechanism used to hide strings from static analysis |
+| 7 | **Bare API Calls** | Direct network calls without explicit strings (`TcpClient.Connect`, `Socket.Connect`, `Process.Start`) |
+
+### Detected Threat Types
+
+```
+Network:      HttpClient, WebClient, DNS, TcpClient, WebSocket
+Execution:    Process.Start, Assembly.Load, Activator.CreateInstance
+Low-level:    DllImport, VirtualAlloc, CreateThread, NtCreateThreadEx
+System:       ManagementObjectSearcher (WMI)
+String-based: Concatenation, CharArray, Interpolation, StringBuilder
+Suspicious:   URL, IP address, .onion address, Base64
+```
+
+### Threat Level Score (0–100)
+
+The scoring algorithm accounts for:
+- Maximum danger level of any single finding
+- Total number of findings (up to +30 pts)
+- Diversity of threat types detected (up to +15 pts)
+- Average confidence score across findings (+5 pts if >90%)
+- Presence of obfuscation — multi-hop string construction (+10 pts)
+
+---
+
+## 📡 API
+
+### `POST /api/PackageScan`
+
+Scans the given NuGet package along with its full dependency tree.
+
+**Request:**
+```json
+{
+  "url": "https://www.nuget.org/packages/System.Net.Http/4.3.4"
+}
+```
+
+**Response:**
+```json
+{
+  "rootPackageName": "System.Net.Http",
+  "rootPackageVersion": "4.3.4",
+  "totalPackages": 12,
+  "totalFindingsFromAllPackages": 5,
+  "threatLevelAllPackages": 47.5,
+  "scannedTimeAllPackages": "2026-03-25T12:00:00Z",
+  "packages": [
+    {
+      "packageName": "System.Net.Http",
+      "version": "4.3.4",
+      "sha256Hash": "abc123...",
+      "threatLevel": 35.0,
+      "totalFindings": 3,
+      "findings": [
+        {
+          "type": "HttpClientCall",
+          "confidenceScore": 95.0,
+          "dangerLevel": 60.0,
+          "evidence": "http://example.com/payload",
+          "location": "MyClass::SendData",
+          "hopDepth": 0,
+          "flowTrace": "[Pattern1] Direct API call using string..."
+        }
+      ]
+    }
+  ],
+  "dependencyGraph": {
+    "rootPackage": "System.Net.Http@4.3.4",
+    "nodes": [...],
+    "edges": [...],
+    "cycles": [...]
+  }
+}
+```
+
+---
+
+## 🏗️ Architecture
+
+Built on **Clean Architecture** with a strict separation of concerns:
+
+```
+NuReaperBackend/
+├── NuReaper.Api/               # API layer — controllers, middleware, startup
+├── NuReaper.Application/       # Application layer — commands, interfaces, DTOs, validation
+├── NuReaper.Domain/            # Domain core — entities, enums, abstractions
+├── NuReaper.Infrastructure/    # Implementations — scanners, parsers, repositories
+│   └── Repositories/
+│       ├── Scanners/           # IL analysis engine
+│       │   ├── Analysis/       # ScanModule, ScanMethod, NetworkApiCallScan
+│       │   ├── Detectors/      # 7 pattern detectors (Pattern1–Pattern7)
+│       │   ├── Patterns/       # PatternRegistry (regex: URL, IP, .onion, Base64)
+│       │   ├── RiskCalculation/# Threat scoring algorithm
+│       │   ├── Finders/        # Locating API calls within IL instructions
+│       │   ├── VariableAnalysis/# Tracking variable values across IL
+│       │   └── StringAnalysis/ # Reconstructing strings from fragments
+│       ├── Parsers/            # .nuspec file parsing
+│       ├── GraphBuilders/      # Dependency graph construction (BFS + recursion)
+│       └── FileHelpers/        # Download, extract, SHA-256
+└── Docker/
+    ├── Dockerfile
+    └── docker-compose.yml
+```
+
+### Stack & Patterns
+
+| Area | Technology / Pattern |
+|------|---------------------|
+| Architecture | Clean Architecture |
+| Inter-layer communication | CQRS + MediatR |
+| IL code analysis | dnlib |
+| Input validation | FluentValidation + MediatR Pipeline Behavior |
+| Object mapping | AutoMapper |
+| Logging | Serilog (console + rolling daily file) |
+| API documentation | Swagger / OpenAPI |
+| Database | Entity Framework Core + MySQL (Pomelo) |
+| HTTP | IHttpClientFactory with connection pooling |
+| Containerization | Docker + Docker Compose |
+| Testing | xUnit + Moq |
+
+---
+
+## ⚙️ How the Scanning Engine Works
+
+```
+Package URL
+    │
+    ▼
+DependencyGraphBuilder          ← builds dependency graph from .nuspec files
+    │  (recursion + BFS, cycle detection)
+    ▼
+List of unique packages
+    │
+    ▼  (parallel, SemaphoreSlim — CPU-1 threads)
+NetworkApiCallScan per package
+    ├── DownloadPackageAsync     ← fetches .nupkg
+    ├── CalculateSha256          ← integrity verification
+    ├── ExtractNupkgAsync        ← unpacks the archive
+    └── GetAssemblyFiles         ← lists .dll files
+            │
+            ▼  (Parallel.ForEachAsync)
+        ScanModule (per .dll)
+            │
+            ▼  (Parallel.ForEach — all types and methods)
+        ScanMethod (per method)
+            │
+            ▼  (7 pattern detectors)
+        Pattern1..7 → FindingSummaryDto
+            │
+            ▼
+    CalculateThreatLevel         ← score 0–100
+    │
+    ▼
+ScanPackageResultResponse
+```
+
+---
+
+## 📦 Key Dependencies
+
+| Package | Purpose |
+|---------|---------|
+| `dnlib` | .NET IL decompilation and analysis |
+| `MediatR` | CQRS — command/query pipeline |
+| `FluentValidation` | Request validation |
+| `AutoMapper` | Cross-layer object mapping |
+| `Serilog` | Structured logging |
+| `Pomelo.EntityFrameworkCore.MySql` | MySQL ORM |
+| `Swashbuckle.AspNetCore` | Swagger UI |
+| `xUnit` + `Moq` | Unit testing |
+
+---
+
+
+## 📄 License
+
+MIT License

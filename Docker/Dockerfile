@@ -5,19 +5,19 @@ EXPOSE 443
 
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 WORKDIR /src
-COPY ["App.Api/App.Api.csproj", "App.Api/"]
-COPY ["App.Application/App.Application.csproj", "App.Application/"]
-COPY ["App.Domain/App.Domain.csproj", "App.Domain/"]
-COPY ["App.Infrastructure/App.Infrastructure.csproj", "App.Infrastructure/"]
-RUN dotnet restore "App.Api/App.Api.csproj"
+COPY ["NuReaper.Api/NuReaper.Api.csproj", "NuReaper.Api/"]
+COPY ["NuReaper.Application/NuReaper.Application.csproj", "NuReaper.Application/"]
+COPY ["NuReaper.Domain/NuReaper.Domain.csproj", "NuReaper.Domain/"]
+COPY ["NuReaper.Infrastructure/NuReaper.Infrastructure.csproj", "NuReaper.Infrastructure/"]
+RUN dotnet restore "NuReaper.Api/NuReaper.Api.csproj"
 COPY . .
-WORKDIR "/src/App.Api"
-RUN dotnet build "App.Api.csproj" -c Release -o /app/build
+WORKDIR "/src/NuReaper.Api"
+RUN dotnet build "NuReaper.Api.csproj" -c Release -o /app/build
 
 FROM build AS publish
-RUN dotnet publish "App.Api.csproj" -c Release -o /app/publish /p:UseAppHost=false
+RUN dotnet publish "NuReaper.Api.csproj" -c Release -o /app/publish /p:UseAppHost=false
 
 FROM base AS final
 WORKDIR /app
 COPY --from=publish /app/publish .
-ENTRYPOINT ["dotnet", "App.Api.dll"]
+ENTRYPOINT ["dotnet", "NuReaper.Api.dll"]ENTRYPOINT ["dotnet", "NuReaper.Api.dll"]

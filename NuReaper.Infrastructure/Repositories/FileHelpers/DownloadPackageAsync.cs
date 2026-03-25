@@ -9,12 +9,16 @@ namespace NuReaper.Infrastructure.Repositories.FileHelpers
     {
         private readonly IHostEnvironment _env;
         private readonly IExtractPackageInfo _extractPackageInfo;
+        private readonly IHttpClientFactory _httpClientFactory;
+        private readonly SemaphoreSlim _globalLock;
         private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, SemaphoreSlim> _extractionLocks = new();
 
-        public DownloadPackageAsync(IHostEnvironment env, IExtractPackageInfo extractPackageInfo)
+        public DownloadPackageAsync(IHostEnvironment env, IExtractPackageInfo extractPackageInfo, IHttpClientFactory httpClientFactory)
         {
             _env = env;
             _extractPackageInfo = extractPackageInfo;
+            _httpClientFactory = httpClientFactory;
+            _globalLock = new SemaphoreSlim(10, 10);
         }
         public async Task<string> ExecuteAsync(string url, CancellationToken cancellationToken)
         {
@@ -29,9 +33,8 @@ namespace NuReaper.Infrastructure.Repositories.FileHelpers
             }
 
             var lockKey = url.ToLowerInvariant();
-            var semaphore = _extractionLocks.GetOrAdd(lockKey, _ => new SemaphoreSlim(1, 1));
 
-            await semaphore.WaitAsync(cancellationToken);
+            await _globalLock.WaitAsync(cancellationToken);
             try
             {
                 var (packageName, version) = _extractPackageInfo.Execute(url);
@@ -41,14 +44,28 @@ namespace NuReaper.Infrastructure.Repositories.FileHelpers
                 string tempFilePath = Path.Combine(tempDir, fileName);
 
                 if (File.Exists(tempFilePath))
-                    return tempFilePath;
+                {
+                    try
+                    {
+                        var fileInfo = new FileInfo(tempFilePath);
+                        if (fileInfo.Length > 0)
+                            return tempFilePath;
+
+                        File.Delete(tempFilePath);
+                    }
+                    catch
+                    {
+                        // Check?
+                        return tempFilePath;
+                    }
+                }
                 
-                using var httpClient = new HttpClient();
+                var httpClient = _httpClientFactory.CreateClient();
                 var response = await httpClient.GetAsync(url, cancellationToken);
 
                 response.EnsureSuccessStatusCode();
 
-                using (var fileStream = new FileStream(tempFilePath, FileMode.Create, FileAccess.Write, FileShare.None))
+                await using (var fileStream = new FileStream(tempFilePath, FileMode.Create, FileAccess.Write, FileShare.None, 8192, FileOptions.Asynchronous))
                 {
                     await response.Content.CopyToAsync(fileStream, cancellationToken);
                 }
@@ -57,7 +74,7 @@ namespace NuReaper.Infrastructure.Repositories.FileHelpers
             }
             finally
             {
-                semaphore.Release();
+                _globalLock.Release();
             }
         }
     }

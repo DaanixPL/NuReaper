@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using dnlib.DotNet;
 using Microsoft.Extensions.Logging;
 using NuReaper.Application.DTOs;
@@ -16,34 +17,48 @@ namespace NuReaper.Infrastructure.Repositories.Scanners.Analysis
             _logger = logger;
         }
 
-        public List<FindingSummaryDto> Execute(string filePath)
+        public async Task<List<FindingSummaryDto>> Execute(string filePath, CancellationToken cancellationToken)
         {
-            var findings = new List<FindingSummaryDto>();
-            ModuleDefMD? module = null;
+            var module = await Task.Run(() => ModuleDefMD.Load(filePath), cancellationToken).ConfigureAwait(false);
 
             try
             {
-                module = ModuleDefMD.Load(filePath);
+                var types = module.GetTypes();
 
-                foreach (var type in module.GetTypes())
+                if (!types.Any())
+                    return new List<FindingSummaryDto>();
+
+                var estimatedMethodCount = types.Sum(t => t.Methods.Count);
+                var findings = new ConcurrentBag<FindingSummaryDto>();
+
+                await Task.Run(() =>
                 {
-                    foreach (var method in type.Methods)
+                    Parallel.ForEach(types, new ParallelOptions { MaxDegreeOfParallelism = Environment.ProcessorCount, CancellationToken = cancellationToken }, type =>
                     {
-                        if (!method.HasBody || !method.Body.HasInstructions)
-                            continue;
+                        foreach (var method in type.Methods)
+                        {
+                            cancellationToken.ThrowIfCancellationRequested();
+
+                            if (!method.HasBody || !method.Body.HasInstructions)
+                                continue;
                             
-                        _logger.LogTrace("Scanning {TypeFullName}::{MethodName}...", type.FullName, method.Name);
-                        var methodFindings = _scanMethod.Execute(method, type);
-                        findings.AddRange(methodFindings);
-                    }
-                }
+                            _logger.LogTrace("Scanning {TypeFullName}::{MethodName}...", type.FullName, method.Name);
+                            var methodFindings = _scanMethod.Execute(method, type);
+                            if (methodFindings.Count > 0)
+                            {
+                                foreach (var finding in methodFindings)                            
+                                    findings.Add(finding);
+                            }
+                        }
+                    });
+                }, cancellationToken).ConfigureAwait(false);
+
+                return findings.ToList();
             }
             finally
             {
                 module?.Dispose();
             }
-
-            return findings;
         }
     }
 }

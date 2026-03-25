@@ -5,6 +5,7 @@ using NuReaper.Infrastructure.Repositories.FileHelpers.Interfaces;
 using NuReaper.Infrastructure.Repositories.Scanners.FindingCreation.Interfaces;
 using NuReaper.Infrastructure.Repositories.FileHelpers.interfaces;
 using System.Runtime.Intrinsics.Arm;
+using System.Collections.Concurrent;
 
 namespace NuReaper.Infrastructure.Repositories.Scanners.Analysis
 {
@@ -32,7 +33,7 @@ namespace NuReaper.Infrastructure.Repositories.Scanners.Analysis
         }
         public async Task<(List<FindingSummaryDto> Findings, string Sha256Hash)> Execute(string url, CancellationToken cancellationToken)
         {
-            var findings = new List<FindingSummaryDto>();
+            var findings = new ConcurrentBag<FindingSummaryDto>();
             var packagePath = await _downloadPackageAsync.ExecuteAsync(url, cancellationToken);
             var sha = _calculateSha256.Execute(packagePath);
 
@@ -40,21 +41,28 @@ namespace NuReaper.Infrastructure.Repositories.Scanners.Analysis
 
             var files = _getAssemblyFiles.Execute(extractDir);
 
-            foreach (var file in files)
+            var parallelOptions = new ParallelOptions
             {
-                cancellationToken.ThrowIfCancellationRequested();
+                MaxDegreeOfParallelism = Math.Max(1, Environment.ProcessorCount - 1),
+                CancellationToken = cancellationToken
+            };
+
+            await Parallel.ForEachAsync(files, parallelOptions, async (file, ct) =>
+            {
+                ct.ThrowIfCancellationRequested();
 
                 try
                 {
                     _logger.LogInformation("Scanning file: {File}", file);
-                    var moduleFindings = _scanModule.Execute(file);
-                    findings.AddRange(moduleFindings);
+                    var moduleFindings = await Task.Run(() => _scanModule.Execute(file), ct);
+                    foreach (var finding in moduleFindings)
+                        findings.Add(finding);
                 }
                 catch (Exception ex)
                 {
                     _logger.LogError(ex, "Error scanning {File}", file);
                 }
-            }
+            });
 
             var (packageName, version) = _extractPackageInfo.Execute(url);
 
@@ -71,7 +79,7 @@ namespace NuReaper.Infrastructure.Repositories.Scanners.Analysis
                 _logger.LogError(ex, "Error deleting file {File}", packagePath);
             }
 
-            return await Task.FromResult((findings, sha));
+            return (findings.ToList(), sha);
         }
     }
 }

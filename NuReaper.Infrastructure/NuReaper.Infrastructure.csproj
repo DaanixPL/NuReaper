@@ -35,7 +35,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\App.Application\App.Application.csproj" />
+    <ProjectReference Include="..\NuReaper.Application\NuReaper.Application.csproj" />
   </ItemGroup>
 
   <ItemGroup>

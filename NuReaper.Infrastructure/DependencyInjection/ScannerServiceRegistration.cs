@@ -1,4 +1,4 @@
-using App.Infrastructure.Repositories.Scanners.Finders;
+using NuReaper.Infrastructure.Repositories.Scanners.Finders;
 using Microsoft.Extensions.DependencyInjection;
 using NuReaper.Infrastructure.Repositories.Scanners.Analysis;
 using NuReaper.Infrastructure.Repositories.Scanners.Analysis.Interfaces;
@@ -6,7 +6,6 @@ using NuReaper.Infrastructure.Repositories.Scanners.ApiCallRegistry;
 using NuReaper.Infrastructure.Repositories.Scanners.ApiCallRegistry.Interfaces;
 using NuReaper.Infrastructure.Repositories.Scanners.Detectors;
 using NuReaper.Infrastructure.Repositories.Scanners.Detectors.Interfaces;
-using NuReaper.Infrastructure.Repositories.Scanners.Finders;
 using NuReaper.Infrastructure.Repositories.Scanners.Finders.Interfaces;
 using NuReaper.Infrastructure.Repositories.Scanners.FindingCreation;
 using NuReaper.Infrastructure.Repositories.Scanners.FindingCreation.Interfaces;

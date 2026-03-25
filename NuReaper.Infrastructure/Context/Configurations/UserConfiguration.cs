@@ -2,7 +2,7 @@ using NuReaper.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
-namespace App.Infrastructure.Context.Configurations
+namespace NuReaper.Infrastructure.Context.Configurations
 {
     public class PackageConfiguration : IEntityTypeConfiguration<Package>
     {
