@@ -20,4 +20,4 @@ RUN dotnet publish "NuReaper.Api.csproj" -c Release -o /app/publish /p:UseAppHos
 FROM base AS final
 WORKDIR /app
 COPY --from=publish /app/publish .
-ENTRYPOINT ["dotnet", "NuReaper.Api.dll"]ENTRYPOINT ["dotnet", "NuReaper.Api.dll"]
+ENTRYPOINT ["dotnet", "NuReaper.Api.dll"]

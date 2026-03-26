@@ -5,13 +5,19 @@ namespace NuReaper.Infrastructure.Repositories.GraphBuilders
 {
     public class BreadthFirstSearch : IBreadthFirstSearch
     {
-        public async Task<List<string>> Execute(DependencyGraphDto graph, string start, string target)
+        public Task<List<string>> Execute(DependencyGraphDto graph, string start, string target)
         {
+            var startNode = graph.Nodes.FirstOrDefault(n => $"{n.Name}@{n.Version}" == start);
+            if (startNode == null) return Task.FromResult(new List<string>());
+
             var queue = new Queue<(string nodeId, List<string> path)>();
             var visited = new HashSet<string>();
 
-            var startNode = graph.Nodes.FirstOrDefault(n => $"{n.Name}@{n.Version}" == start);
-            if (startNode == null) return new List<string>();
+            var nodesById = graph.Nodes.ToDictionary(n => n.Id);
+            var edgesByFromId = graph.Edges
+                .GroupBy(e => e.FromId)
+                .ToDictionary(g => g.Key, g => g.Select(e => e.ToId).ToList());
+
 
             queue.Enqueue((startNode.Id, new List<string> { start }));
             visited.Add(startNode.Id);
@@ -19,28 +25,30 @@ namespace NuReaper.Infrastructure.Repositories.GraphBuilders
             while (queue.Count > 0)
             {
                 var (currentId, path) = queue.Dequeue();
-                var currentNode = graph.Nodes.First(n => n.Id == currentId);
+                
+                if (!nodesById.TryGetValue(currentId, out var currentNode))
+                    continue;
+                
                 var currentKey = $"{currentNode.Name}@{currentNode.Version}";
+                if (currentKey == target) return Task.FromResult(path);
 
-                if (currentKey == target) return path;
+                if (!edgesByFromId.TryGetValue(currentId, out var neighbors))
+                    continue;
 
-                foreach (var edge in graph.Edges.Where(e => e.FromId == currentId))
+                foreach (var nextId in neighbors)
                 {
-                    if (!visited.Contains(edge.ToId))
-                    {
-                        visited.Add(edge.ToId);
-                        var nextNode = graph.Nodes.FirstOrDefault(n => n.Id == edge.ToId);
-                        
-                        if (nextNode != null)
-                        {
-                            var newPath = new List<string>(path) { $"{nextNode.Name}@{nextNode.Version}" };
-                            queue.Enqueue((edge.ToId, newPath));
-                        }
-                    }
+                   if (!visited.Add(nextId))
+                        continue;
+
+                    if (!nodesById.TryGetValue(nextId, out var nextNode))
+                        continue;
+                    
+                    var newPath = new List<string>(path) { $"{nextNode.Name}@{nextNode.Version}" };
+                    queue.Enqueue((nextId, newPath));
                 }
             }
 
-            return new List<string>();
+            return Task.FromResult(new List<string>());
         }
     }
 }
