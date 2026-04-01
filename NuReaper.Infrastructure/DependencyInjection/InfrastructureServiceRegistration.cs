@@ -28,6 +28,7 @@ namespace NuReaper.Infrastructure.DependencyInjection
             ParsersServiceRegistration.AddParsersServices(services);
             GraphBuilderServiceRegistration.AddGraphBuilderServices(services, configuration);
             FileHelpersServiceRegistration.AddFileHelpersServices(services);
+            JobServiceRegistration.AddJobServices(services);
             return services;
         }
     }
