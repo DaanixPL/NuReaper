@@ -208,4 +208,5 @@ ScanPackageResultResponse
 
 ## 📄 License
 
-MIT License
+This project is available under the PolyForm Noncommercial License 1.0.0, commercial use is prohibited.
+For commercial licensing or inquiries, contact: vdanix.contact@gmail.com
