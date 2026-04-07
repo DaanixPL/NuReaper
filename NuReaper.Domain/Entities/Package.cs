@@ -1,5 +1,3 @@
-using NuReaper.Domain.Entities;
-
 namespace NuReaper.Domain.Entities
 {
     public class Package

@@ -17,6 +17,10 @@ namespace NuReaper.Infrastructure.Repositories
         {
             await _context.Packages.AddAsync(package, cancellationToken);
         }
+        public async Task AddPackagesAsync(IEnumerable<Package> packages, CancellationToken cancellationToken = default)
+        {
+            await _context.Packages.AddRangeAsync(packages, cancellationToken);
+        }
         public Task RemovePackageAsync(Package package, CancellationToken cancellationToken = default)
         {
             _context.Packages.Remove(package);
@@ -32,7 +36,19 @@ namespace NuReaper.Infrastructure.Repositories
         {
             return await _context.Packages
                 .AsNoTracking()
+                .Include(p => p.Scans)
+                .Include(p => p.Dependencies)
                 .FirstOrDefaultAsync(p => p.NormalizedKey == normalizedKey, cancellationToken);
+        }
+
+        public async Task<List<Package>> GetPackagesByNormalizedKeyAsync(IEnumerable<string> normalizedKeys, CancellationToken cancellationToken = default)
+        {
+            return await _context.Packages
+                .AsNoTracking()
+                .Include(p => p.Scans)
+                .Include(p => p.Dependencies)
+                .Where(p => normalizedKeys.Contains(p.NormalizedKey))
+                .ToListAsync(cancellationToken);
         }
     }
 }
