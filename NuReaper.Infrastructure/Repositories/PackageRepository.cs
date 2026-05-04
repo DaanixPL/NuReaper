@@ -41,5 +41,15 @@ namespace NuReaper.Infrastructure.Repositories
                 .AsNoTracking()
                 .FirstOrDefaultAsync(p => p.PackageName == name && p.Version == version, cancellationToken);
         }
+
+        public async Task<List<Package>> GetPackagesByNormalizedKeyAsync(IEnumerable<string> normalizedKeys, CancellationToken cancellationToken = default)
+        {
+            return await _context.Packages
+                .AsNoTracking()
+                .Include(p => p.Scans)
+                .Include(p => p.Dependencies)
+                .Where(p => normalizedKeys.Contains(p.NormalizedKey))
+                .ToListAsync(cancellationToken);
+        }
     }
 }
