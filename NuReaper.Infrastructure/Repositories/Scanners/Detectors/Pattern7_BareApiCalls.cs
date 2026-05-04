@@ -3,6 +3,7 @@ using dnlib.DotNet;
 using dnlib.DotNet.Emit;
 using Microsoft.Extensions.Logging;
 using NuReaper.Application.DTOs;
+using NuReaper.Domain.Entities;
 using NuReaper.Infrastructure.Repositories.Scanners.Detectors.Interfaces;
 using NuReaper.Infrastructure.Repositories.Scanners.Finders.Interfaces;
 using NuReaper.Infrastructure.Repositories.Scanners.FindingCreation.Interfaces;
@@ -35,10 +36,10 @@ namespace NuReaper.Infrastructure.Repositories.Scanners.Detectors
             return false;
         }
 
-        public List<FindingSummaryDto> Detect(IList<Instruction> instructions, int instructionIndex, TypeDef type, MethodDef method, HashSet<int> processedIndices)
+        public List<ScanFinding> Detect(IList<Instruction> instructions, int instructionIndex, TypeDef type, MethodDef method, HashSet<int> processedIndices)
         {
             var sb = new StringBuilder();
-            List<FindingSummaryDto> findings = new List<FindingSummaryDto>();
+            List<ScanFinding> findings = new List<ScanFinding>();
             sb.AppendLine($"[Pattern7] Detected potential bare API call at IL_{instructions[instructionIndex].Offset:X4} in {type.FullName}::{method.Name}");
             var bareApiMethod = instructions[instructionIndex].Operand as IMethod ?? throw new InvalidOperationException("Expected an IMethod operand for a call instruction.");
             var args = _extractApiCallArguments.Execute(instructions, instructionIndex, bareApiMethod);

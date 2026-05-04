@@ -1,9 +1,8 @@
-using NuReaper.Application.DTOs;
 using NuReaper.Application.Interfaces.Dependencies;
 using NuReaper.Application.Interfaces.Scanners;
-using NuReaper.Application.Responses;
+using NuReaper.Domain.Abstractions;
+using NuReaper.Domain.Entities;
 using NuReaper.Infrastructure.Repositories.Scanners.Analysis.Interfaces;
-using NuReaper.Infrastructure.Repositories.Scanners.RiskCalculation.Interfaces;
 
 namespace NuReaper.Infrastructure.Repositories
 {
@@ -11,16 +10,16 @@ namespace NuReaper.Infrastructure.Repositories
     {   
         private readonly INetworkApiCallScan _networkApiCallScan;
         private readonly IDependencyGraphBuilder _dependencyGraphBuilder;
-        private readonly ICalculateThreatLevel _calculateThreatLevel;
+        private readonly IUnitOfWork _unitOfWork;
 
-        public AssemblyScanner(INetworkApiCallScan networkApiCallScan, IDependencyGraphBuilder dependencyGraphBuilder, ICalculateThreatLevel calculateThreatLevel)
+        public AssemblyScanner(INetworkApiCallScan networkApiCallScan, IDependencyGraphBuilder dependencyGraphBuilder, IUnitOfWork unitOfWork)
         {
             _networkApiCallScan = networkApiCallScan;
             _dependencyGraphBuilder = dependencyGraphBuilder;
-            _calculateThreatLevel = calculateThreatLevel;
+            _unitOfWork = unitOfWork;
         }
 
-        public async Task<ScanPackageResultResponse> ScanPackageAsync(string url, CancellationToken cancellationToken)
+        public async Task<ScanPackageResult> ScanPackageAsync(string url, CancellationToken cancellationToken)
         {
             var startTime = DateTime.UtcNow;
             // TODO: Mozna dodac cache wynikow + dodawanie do db. Oraz zapis w db czas skanowania.
@@ -36,10 +35,11 @@ namespace NuReaper.Infrastructure.Repositories
                 throw new InvalidOperationException($"Invalid RootPackage format: {graph.RootPackage}. Expected format: 'name@version'");
             }
 
-            ScanPackageResultResponse resault = new ScanPackageResultResponse
+            ScanPackageResult resault = new ScanPackageResult
             {
                 RootPackageName = rootParts[0],
                 RootPackageVersion = rootParts[1],
+                DependencyGraph = graph,
             };
 
             var cpuCount = Environment.ProcessorCount;
@@ -52,17 +52,26 @@ namespace NuReaper.Infrastructure.Repositories
                 await semaphore.WaitAsync(cancellationToken);
                 try
                 {
+                    var existingPackage = await _unitOfWork.Packages.GetPackageByNormalizedKeyAsync($"{node.Name}@{node.Version}", cancellationToken);
+                    if (existingPackage != null && existingPackage.IsRecentlyScanCached())
+                    {
+                        return existingPackage;
+                    }
                     var package = await _networkApiCallScan.Execute($"https://www.nuget.org/api/v2/package/{node.Name}/{node.Version}", cancellationToken);
-                    return new PackageDto
+                    return new Package
                     {
                         PackageName = node.Name,
                         Author = "Nuget", // dodac
                         Version = node.Version,
                         Sha256Hash = package.Sha256Hash,
-                        ThreatLevel = _calculateThreatLevel.Execute(package.Findings),
-                        Findings = package.Findings,
-                        TotalFindings = package.Findings.Count,
-                        ScannedTime = new DateTime(now.Year, now.Month, now.Day, now.Hour, now.Minute, now.Second, DateTimeKind.Utc),
+                        Scans = new List<Scan>
+                        {
+                            new Scan
+                            {
+                                Version = node.Version,
+                                Findings = package.Findings
+                            }
+                        }
                     };
                 }
                 finally
@@ -72,15 +81,11 @@ namespace NuReaper.Infrastructure.Repositories
             });
 
             var packages = await Task.WhenAll(scanTasks).ConfigureAwait(false);
+            float ScanTime = (float)(DateTime.UtcNow - startTime).TotalSeconds;
+
             resault.Packages.AddRange(packages);
-
-            resault.TotalPackages = resault.Packages.Count;
-            resault.TotalFindingsFromAllPackages = resault.Packages.Sum(p => p.TotalFindings);
-            resault.ThreatLevelAllPackages = _calculateThreatLevel.Execute(resault.Packages.SelectMany(p => p.Findings).ToList()); // lepiej to zrobic
-            resault.DependencyGraph = graph;
-            resault.ScannedTimeAllPackages = DateTime.UtcNow;
-
-            Console.WriteLine($"[&] findings in {(DateTime.UtcNow - startTime).TotalSeconds} seconds.");
+            resault.ScannedTimeAllPackages = ScanTime;
+            Console.WriteLine($"[&] findings in {ScanTime} seconds.");
             // TODO: Tutaj czysczenie pakietow skanowanych
             return resault;
         }

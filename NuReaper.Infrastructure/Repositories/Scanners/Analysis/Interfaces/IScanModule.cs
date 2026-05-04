@@ -1,9 +1,9 @@
-using NuReaper.Application.DTOs;
+using NuReaper.Domain.Entities;
 
 namespace NuReaper.Infrastructure.Repositories.Scanners.Analysis.Interfaces
 {
     public interface IScanModule
     {
-        public Task<List<FindingSummaryDto>> Execute(string filePath, CancellationToken cancellationToken = default);
+        public Task<List<ScanFinding>> Execute(string filePath, CancellationToken cancellationToken = default);
     }
 }

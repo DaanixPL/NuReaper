@@ -7,32 +7,39 @@ namespace NuReaper.Infrastructure.Repositories
 {
     public class PackageRepository : IPackageRepository
     {
-        private readonly AppDbContext _context;
-        public PackageRepository(AppDbContext context)
+        private readonly IDbContextFactory<AppDbContext> _contextFactory;
+        public PackageRepository(IDbContextFactory<AppDbContext> contextFactory)
         {
-            _context = context ?? throw new ArgumentNullException(nameof(context));
+            _contextFactory = contextFactory ?? throw new ArgumentNullException(nameof(contextFactory));
         }
 
         public async Task AddPackageAsync(Package package, CancellationToken cancellationToken = default)
         {
+            await using var _context = await _contextFactory.CreateDbContextAsync(cancellationToken);
             await _context.Packages.AddAsync(package, cancellationToken);
         }
-        public Task RemovePackageAsync(Package package, CancellationToken cancellationToken = default)
+        public async Task RemovePackageAsync(Package package, CancellationToken cancellationToken = default)
         {
+            await using var _context = await _contextFactory.CreateDbContextAsync(cancellationToken);
             _context.Packages.Remove(package);
-            return Task.CompletedTask;
         }
-        public Task UpdatePackageAsync(Package package, CancellationToken cancellationToken = default)
+        public async Task UpdatePackageAsync(Package package, CancellationToken cancellationToken = default)
         {
+            await using var _context = await _contextFactory.CreateDbContextAsync(cancellationToken);
             _context.Packages.Update(package);
-            return Task.CompletedTask;
         }
 
         public async Task<Package?> GetPackageByNormalizedKeyAsync(string normalizedKey, CancellationToken cancellationToken = default)
         {
+            var idx = normalizedKey.LastIndexOf('@');
+            if (idx <= 0)
+                throw new ArgumentException($"Invalid normalizedKey: '{normalizedKey}'. Expected 'Name@Version'.");
+            var name = normalizedKey.Substring(0, idx);
+            var version = normalizedKey.Substring(idx + 1);
+            await using var _context = await _contextFactory.CreateDbContextAsync(cancellationToken);
             return await _context.Packages
                 .AsNoTracking()
-                .FirstOrDefaultAsync(p => p.NormalizedKey == normalizedKey, cancellationToken);
+                .FirstOrDefaultAsync(p => p.PackageName == name && p.Version == version, cancellationToken);
         }
     }
 }

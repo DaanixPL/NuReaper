@@ -196,6 +196,11 @@ namespace NuReaper.Infrastructure.Repositories.Scanners.ApiCallRegistry
         public bool Execute(string methodFullName)
         {
             _logger.LogTrace("[IsNetworkApiCall] Checking if '{MethodFullName}' is a network API call...", methodFullName);
+            if (string.IsNullOrEmpty(methodFullName))
+            {
+                _logger.LogTrace("[IsNetworkApiCall] Method full name is null or empty. Returning false.");
+                return false;
+            }
             bool isNetworkApiCall = NetworkApiCalls.Any(api => methodFullName.Contains(api));
             _logger.LogTrace("[IsNetworkApiCall] Result: {IsNetworkApiCall}", isNetworkApiCall);
             return isNetworkApiCall;

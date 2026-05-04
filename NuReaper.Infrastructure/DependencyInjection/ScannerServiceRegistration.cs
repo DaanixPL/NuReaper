@@ -47,7 +47,7 @@ namespace NuReaper.Infrastructure.DependencyInjection
             services.AddScoped<IFindNetworkApiCallAfterIndex, FindNetworkApiCallAfterIndex>();
             services.AddScoped<IExtractApiCallArguments, ExtractApiCallArguments>();
             services.AddScoped<IFindApiCallUsingVariable, FindApiCallUsingVariable>();
-            services.AddScoped<IFindNetworkApiCall, FindNetworkApiCall>();
+            services.AddScoped<IFindApiCall, FindApiCall>();
             services.AddScoped<IFindNextVariableStore, FindNextVariableStore>();
             services.AddScoped<IFindToStringAndClear, FindToStringAndClear>();
 

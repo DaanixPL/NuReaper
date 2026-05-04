@@ -2,7 +2,7 @@ namespace NuReaper.Domain.Entities
 {
     public class Scan
     {
-        public Guid Id { get; set; }
+        public Guid Id { get; set; } = Guid.NewGuid();
         public Guid PackageId { get; set; }
 
         // Scan information
@@ -12,7 +12,6 @@ namespace NuReaper.Domain.Entities
 
         public float ThreatLevel { get; set; } // 1-100 (1- nothing to worry about, 100 - critical)
 
-        private readonly List<ScanFinding> _findings = new();
-        public IReadOnlyList<ScanFinding> DetectedIssues => _findings.AsReadOnly();
+        public List<ScanFinding> Findings = new();
     }
 }

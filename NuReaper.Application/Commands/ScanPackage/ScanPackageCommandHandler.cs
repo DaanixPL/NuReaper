@@ -1,6 +1,7 @@
 using MediatR;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using NuReaper.Application.Interfaces.DataFlow;
 using NuReaper.Application.Interfaces.Jobs;
 
 namespace NuReaper.Application.Commands.ScanPackage
@@ -29,7 +30,6 @@ namespace NuReaper.Application.Commands.ScanPackage
                     throw new ArgumentException("Invalid URL. Only packages from nuget.org are allowed.");
                 }
             }
-
             var jobId = await _scanJobService.EnqueueJob(urlToDownload, cancellationToken);
             return jobId;
         }

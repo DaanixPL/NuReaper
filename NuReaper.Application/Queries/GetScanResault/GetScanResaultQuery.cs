@@ -3,5 +3,5 @@ using NuReaper.Application.Responses;
 
 namespace NuReaper.Application.Queries.GetScanResult
 {
-    public record GetScanResultQuery(Guid JobId) : IRequest<ScanJobStatus?>;
+    public record GetScanResultQuery(Guid JobId) : IRequest<ScanJobStatusResponse?>;
 }

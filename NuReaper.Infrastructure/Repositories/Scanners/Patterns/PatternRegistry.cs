@@ -48,6 +48,135 @@ namespace NuReaper.Infrastructure.Repositories.Scanners.Patterns
             "Process::Start",  // Always suspicious
             "ServicePointManager::set_ServerCertificateValidationCallback",  // Cert bypass
         };
+        private readonly Dictionary<InjectionSinkCategory, string[]> injectionSinks = new()
+        {
+            // === Process Creation / Shell Execution ===
+            {
+                InjectionSinkCategory.ProcessManipulation,
+                new[]
+                {
+                    // Process creation
+                    "System.Diagnostics.Process::Start",
+                    "System.Diagnostics.ProcessStartInfo::.ctor",
+                    "CreateProcess",
+                    "CreateProcessAsUser",
+                    "NtCreateProcess",
+                    
+                    // Shell execution
+                    "ShellExecute",
+                    "ShellExecuteEx",
+                    "WinExec",
+                }
+            },
+
+            // === Memory Allocation / Write / Protect ===
+            {
+                InjectionSinkCategory.MemoryManipulation,
+                new[]
+                {
+                    // Allocation
+                    "VirtualAlloc",
+                    "VirtualAllocEx",
+                    "NtAllocateVirtualMemory",
+                    
+                    // Write
+                    "WriteProcessMemory",
+                    "ReadProcessMemory",
+                    "NtWriteVirtualMemory",
+                    "System.Runtime.InteropServices.Marshal::Copy",
+                    "System.Runtime.InteropServices.Marshal::WriteIntPtr",
+                    "System.Runtime.InteropServices.Marshal::WriteByte",
+                    
+                    // Protect
+                    "VirtualProtect",
+                    "VirtualProtectEx",
+                    "NtProtectVirtualMemory",
+                }
+            },
+
+            // === Remote Thread / Local Thread Execution ===
+            {
+                InjectionSinkCategory.CodeExecution,
+                new[]
+                {
+                    "CreateThread",
+                    "CreateRemoteThread",
+                    "CreateRemoteThreadEx",
+                    "NtCreateThreadEx",
+                    "RtlCreateUserThread",
+                    "QueueUserAPC",
+                    "NtQueueApcThread",
+                }
+            },
+
+            // === Dynamic Loading (DLL / Assembly) ===
+            {
+                InjectionSinkCategory.DynamicLoading,
+                new[]
+                {
+                    // Native DLL loading
+                    "LoadLibrary",
+                    "LoadLibraryA",
+                    "LoadLibraryEx",
+                    "LdrLoadDll",
+                    "SetWindowsHookEx",
+                    
+                    // .NET Assembly loading
+                    "System.Reflection.Assembly::Load",
+                    "System.Reflection.Assembly::LoadFrom",
+                    "System.Reflection.Assembly::LoadFile",
+                    "System.Reflection.Emit.DynamicMethod::.ctor",
+                    "System.Reflection.Emit.AssemblyBuilder::DefineDynamicAssembly",
+                    "System.Runtime.InteropServices.Marshal::GetDelegateForFunctionPointer",
+                }
+            },
+
+            // === Script / Command Execution ===
+            {
+                InjectionSinkCategory.ScriptExecution,
+                new[]
+                {
+                    "System.Management.Automation.PowerShell::Create",
+                    "System.Management.Automation.Runspaces.RunspaceFactory::CreateRunspace",
+                    "Microsoft.CSharp.CSharpCodeProvider::CompileAssemblyFromSource",
+                    "System.CodeDom.Compiler.CodeDomProvider::CompileAssemblyFromSource",
+                }
+            },
+
+            // === Handle / Process Access ===
+            {
+                InjectionSinkCategory.HandleAccess,
+                new[]
+                {
+                    "OpenProcess",
+                    "NtOpenProcess",
+                    "DuplicateHandle",
+                }
+            },
+
+            // === Fiber-based Injection ===
+            {
+                InjectionSinkCategory.FiberInjection,
+                new[]
+                {
+                    "CreateFiber",
+                    "ConvertThreadToFiber",
+                    "SwitchToFiber",
+                }
+            },
+
+            // === Section / Memory Mapping ===
+            {
+                InjectionSinkCategory.SectionMapping,
+                new[]
+                {
+                    "NtCreateSection",
+                    "NtMapViewOfSection",
+                    "MapViewOfFile",
+                    "MapViewOfFileEx",
+                }
+            },
+        };
 
 
         public ScanFindingType IsSuspiciousString(string input)
@@ -133,6 +262,24 @@ namespace NuReaper.Infrastructure.Repositories.Scanners.Patterns
         public bool IsHighRiskBareApiCall(string methodFullName)
         {
             return HighRiskBareApiCalls.Any(api => methodFullName.Contains(api));
+        }
+
+        public bool IsInjectionSink(string methodFullName)
+        {
+            return FindCategory(methodFullName) != null;
+        }
+        public InjectionSinkCategory? FindCategory(string methodCall)
+        {
+            foreach (var kvp in injectionSinks)
+            {
+                if (kvp.Value.Contains(methodCall))
+                    return kvp.Key;
+            }
+            return null;
+        }
+        public Dictionary<InjectionSinkCategory, string[]> GetAllInjectionSinks()
+        {
+            return injectionSinks;
         }
     }
 }

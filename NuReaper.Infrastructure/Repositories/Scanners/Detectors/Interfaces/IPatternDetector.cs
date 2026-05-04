@@ -1,6 +1,6 @@
 using dnlib.DotNet;
 using dnlib.DotNet.Emit;
-using NuReaper.Application.DTOs;
+using NuReaper.Domain.Entities;
 
 namespace NuReaper.Infrastructure.Repositories.Scanners.Detectors.Interfaces
 {
@@ -8,7 +8,7 @@ namespace NuReaper.Infrastructure.Repositories.Scanners.Detectors.Interfaces
     {
         bool CanDetect(Instruction instruction);
 
-        List<FindingSummaryDto> Detect(
+        List<ScanFinding> Detect(
             IList<Instruction> instructions,
             int instructionIndex,
             TypeDef type,

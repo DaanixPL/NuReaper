@@ -1,11 +1,10 @@
 using Microsoft.Extensions.Logging;
-using NuReaper.Application.DTOs;
 using NuReaper.Infrastructure.Repositories.Scanners.Analysis.Interfaces;
 using NuReaper.Infrastructure.Repositories.FileHelpers.Interfaces;
 using NuReaper.Infrastructure.Repositories.Scanners.FindingCreation.Interfaces;
 using NuReaper.Infrastructure.Repositories.FileHelpers.interfaces;
-using System.Runtime.Intrinsics.Arm;
 using System.Collections.Concurrent;
+using NuReaper.Domain.Entities;
 
 namespace NuReaper.Infrastructure.Repositories.Scanners.Analysis
 {
@@ -31,9 +30,9 @@ namespace NuReaper.Infrastructure.Repositories.Scanners.Analysis
             _calculateSha256 = calculateSha256;
             _extractPackageInfo = extractPackageInfo;
         }
-        public async Task<(List<FindingSummaryDto> Findings, string Sha256Hash)> Execute(string url, CancellationToken cancellationToken)
+        public async Task<(List<ScanFinding> Findings, string Sha256Hash)> Execute(string url, CancellationToken cancellationToken)
         {
-            var findings = new ConcurrentBag<FindingSummaryDto>();
+            var findings = new ConcurrentBag<ScanFinding>();
             var packagePath = await _downloadPackageAsync.ExecuteAsync(url, cancellationToken);
             var sha = _calculateSha256.Execute(packagePath);
 

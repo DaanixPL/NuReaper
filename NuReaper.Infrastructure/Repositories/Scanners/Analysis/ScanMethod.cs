@@ -1,12 +1,9 @@
 using System.Text;
 using dnlib.DotNet;
-using dnlib.DotNet.Emit;
-using Microsoft.Extensions.FileSystemGlobbing.Internal;
 using Microsoft.Extensions.Logging;
-using NuReaper.Application.DTOs;
+using NuReaper.Domain.Entities;
 using NuReaper.Infrastructure.Repositories.Scanners.Analysis.Interfaces;
 using NuReaper.Infrastructure.Repositories.Scanners.Detectors.Interfaces;
-using NuReaper.Infrastructure.Repositories.Scanners.Patterns.Interfaces;
 
 namespace NuReaper.Infrastructure.Repositories.Scanners.Analysis
 {
@@ -21,14 +18,14 @@ namespace NuReaper.Infrastructure.Repositories.Scanners.Analysis
             _logger = logger;
         }
 
-        public List<FindingSummaryDto> Execute(MethodDef method, TypeDef type)
+        public List<ScanFinding> Execute(MethodDef method, TypeDef type)
         {
             var instructions = method.Body.Instructions;
 
             if (instructions.Count == 0)
-                return new List<FindingSummaryDto>();
+                return new List<ScanFinding>();
             
-            var findings = new List<FindingSummaryDto>(capacity: 4);
+            var findings = new List<ScanFinding>(capacity: 4);
             var processedIndices = new HashSet<int>(); // Deduplication
 
             if (_logger.IsEnabled(LogLevel.Trace))

@@ -1,4 +1,4 @@
-using NuReaper.Application.DTOs;
+using NuReaper.Domain.Entities;
 
 namespace NuReaper.Application.DTOs
 {
@@ -19,6 +19,6 @@ namespace NuReaper.Application.DTOs
 
         public DateTime ScannedTime { get; set; }
 
-        public List<FindingSummaryDto> Findings { get; set; } = new List<FindingSummaryDto>();
+        public List<ScanFinding> Findings { get; set; } = new List<ScanFinding>();
     }
 }

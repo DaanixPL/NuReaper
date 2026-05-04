@@ -1,6 +1,5 @@
 using System.Collections.Concurrent;
-using System.Collections.Immutable;
-using NuReaper.Application.DTOs.Graph;
+using NuReaper.Domain.Entities.Graph;
 
 namespace NuReaper.Infrastructure.Repositories.GraphBuilders.HelperClasses
 {
@@ -9,13 +8,13 @@ namespace NuReaper.Infrastructure.Repositories.GraphBuilders.HelperClasses
         public ConcurrentDictionary<string, byte> Visited { get; } = new();
         public ConcurrentDictionary<string, string> NodeIdMap { get; } = new();
 
-        private readonly ConcurrentDictionary<string, GraphNodeDto> _nodesDict = new();
-        private readonly ConcurrentDictionary<string, GraphEdgeDto> _edgesDict = new();
+        private readonly ConcurrentDictionary<string, GraphNode> _nodesDict = new();
+        private readonly ConcurrentDictionary<string, GraphEdge> _edgesDict = new();
 
-        public IEnumerable<GraphNodeDto> Nodes => _nodesDict.Values;
-        public IEnumerable<GraphEdgeDto> Edges => _edgesDict.Values;
+        public IEnumerable<GraphNode> Nodes => _nodesDict.Values;
+        public IEnumerable<GraphEdge> Edges => _edgesDict.Values;
 
-        public ConcurrentBag<CycleDto> Cycles { get; } = new();
+        public ConcurrentBag<Cycle> Cycles { get; } = new();
 
         public bool TryMarkAsVisited(string packageKey)
         {
@@ -29,11 +28,11 @@ namespace NuReaper.Infrastructure.Repositories.GraphBuilders.HelperClasses
         {
             return NodeIdMap.GetOrAdd(packageKey, _ => Guid.NewGuid().ToString());
         }
-        public bool TryAddNode(GraphNodeDto node)
+        public bool TryAddNode(GraphNode node)
         {
             return _nodesDict.TryAdd(node.Id, node);
         }
-        public bool TryAddEdge(GraphEdgeDto edge)
+        public bool TryAddEdge(GraphEdge edge)
         {
             var edgeKey = $"{edge.FromId}->{edge.ToId}";
             return _edgesDict.TryAdd(edgeKey, edge);

@@ -1,7 +1,7 @@
 using System.Collections.Concurrent;
 using dnlib.DotNet;
 using Microsoft.Extensions.Logging;
-using NuReaper.Application.DTOs;
+using NuReaper.Domain.Entities;
 using NuReaper.Infrastructure.Repositories.Scanners.Analysis.Interfaces;
 
 namespace NuReaper.Infrastructure.Repositories.Scanners.Analysis
@@ -17,7 +17,7 @@ namespace NuReaper.Infrastructure.Repositories.Scanners.Analysis
             _logger = logger;
         }
 
-        public async Task<List<FindingSummaryDto>> Execute(string filePath, CancellationToken cancellationToken)
+        public async Task<List<ScanFinding>> Execute(string filePath, CancellationToken cancellationToken)
         {
             var module = await Task.Run(() => ModuleDefMD.Load(filePath), cancellationToken).ConfigureAwait(false);
 
@@ -26,10 +26,10 @@ namespace NuReaper.Infrastructure.Repositories.Scanners.Analysis
                 var types = module.GetTypes();
 
                 if (!types.Any())
-                    return new List<FindingSummaryDto>();
+                    return new List<ScanFinding>();
 
                 var estimatedMethodCount = types.Sum(t => t.Methods.Count);
-                var findings = new ConcurrentBag<FindingSummaryDto>();
+                var findings = new ConcurrentBag<ScanFinding>();
 
                 await Task.Run(() =>
                 {

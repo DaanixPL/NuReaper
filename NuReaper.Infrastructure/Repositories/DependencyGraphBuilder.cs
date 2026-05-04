@@ -1,10 +1,9 @@
 using System.Collections.Immutable;
-using NuReaper.Application.DTOs;
-using NuReaper.Application.DTOs.Graph;
 using NuReaper.Application.Interfaces.Dependencies;
 using Microsoft.Extensions.Logging;
 using NuReaper.Infrastructure.Repositories.GraphBuilders.HelperClasses;
 using NuReaper.Infrastructure.Repositories.GraphBuilders.Interfaces;
+using NuReaper.Domain.Entities.Graph;
 
 namespace NuReaper.Infrastructure.Repositories
 {
@@ -30,7 +29,7 @@ namespace NuReaper.Infrastructure.Repositories
             _logger = logger;
             _downloadAndExtractNuspecAsync = downloadAndExtractNuspecAsync;
         }
-        public async Task<DependencyGraphDto> BuildGraphAsync(
+        public async Task<DependencyGraph> BuildGraphAsync(
             string url,
             int maxDepth,
             string? targetFramework,
@@ -87,7 +86,7 @@ namespace NuReaper.Infrastructure.Repositories
                 maxDepth,
                 cancellationToken);
 
-            return new DependencyGraphDto
+            return new DependencyGraph
             {
                 RootPackage = $"{rootPackageName}@{rootPackageVersion}",
                 Nodes = context.Nodes.ToList(),
@@ -123,14 +122,14 @@ namespace NuReaper.Infrastructure.Repositories
             return await _breadthFirstSearch.Execute(graph, fromPackage, toPackage);
         }
         // interface?
-        private DependencyGraphDto CreateEmptyGraph(string packageName, string version)
+        private DependencyGraph CreateEmptyGraph(string packageName, string version)
         {
-            return new DependencyGraphDto
+            return new DependencyGraph
             {
                 RootPackage = $"{packageName}@{version}",
-                Nodes = new List<GraphNodeDto>(),
-                Edges = new List<GraphEdgeDto>(),
-                Cycles = new List<CycleDto>(),
+                Nodes = new List<GraphNode>(),
+                Edges = new List<GraphEdge>(),
+                Cycles = new List<Cycle>(),
                 GeneratedAt = DateTime.UtcNow
             };
         }

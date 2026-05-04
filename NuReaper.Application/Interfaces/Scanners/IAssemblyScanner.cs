@@ -1,10 +1,10 @@
-using NuReaper.Application.Responses;
+using NuReaper.Domain.Entities;
 
 namespace NuReaper.Application.Interfaces.Scanners
 {
     public interface IAssemblyScanner
     {
-        Task<ScanPackageResultResponse> ScanPackageAsync(
+        Task<ScanPackageResult> ScanPackageAsync(
             string url,
             CancellationToken cancellationToken);
     }

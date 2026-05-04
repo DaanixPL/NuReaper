@@ -1,9 +1,9 @@
-using NuReaper.Application.DTOs;
+using NuReaper.Domain.Entities.Graph;
 
 namespace NuReaper.Infrastructure.Repositories.GraphBuilders.Interfaces
 {
     public interface IBreadthFirstSearch
     {
-        public Task<List<string>> Execute(DependencyGraphDto graph, string start, string target);
+        public Task<List<string>> Execute(DependencyGraph graph, string start, string target);
     }
 }

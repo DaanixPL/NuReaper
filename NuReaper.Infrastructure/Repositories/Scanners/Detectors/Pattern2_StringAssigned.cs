@@ -2,7 +2,7 @@ using System.Text;
 using dnlib.DotNet;
 using dnlib.DotNet.Emit;
 using Microsoft.Extensions.Logging;
-using NuReaper.Application.DTOs;
+using NuReaper.Domain.Entities;
 using NuReaper.Infrastructure.Repositories.Scanners.Detectors.Interfaces;
 using NuReaper.Infrastructure.Repositories.Scanners.Finders.Interfaces;
 using NuReaper.Infrastructure.Repositories.Scanners.FindingCreation.Interfaces;
@@ -38,10 +38,10 @@ namespace NuReaper.Infrastructure.Repositories.Scanners.Detectors
             return false;
         }
 
-        public List<FindingSummaryDto> Detect(IList<Instruction> instructions, int instructionIndex, TypeDef type, MethodDef method, HashSet<int> processedIndices)
+        public List<ScanFinding> Detect(IList<Instruction> instructions, int instructionIndex, TypeDef type, MethodDef method, HashSet<int> processedIndices)
         {
             var sb = new StringBuilder();
-            List<FindingSummaryDto> findings = new List<FindingSummaryDto>();
+            List<ScanFinding> findings = new List<ScanFinding>();
             var nextStore = _findNextVariableStore.Execute(instructions, instructionIndex, 5);
             if (!nextStore.HasValue)
             {

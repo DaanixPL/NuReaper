@@ -9,9 +9,11 @@ namespace NuReaper.Infrastructure.DependencyInjection
     {
         public static IServiceCollection AddDatabaseServices(this IServiceCollection services, IConfiguration configuration)
         {
-            services.AddDbContext<AppDbContext>(options =>
-            options.UseMySql(configuration.GetConnectionString("DefaultConnection"),
-                new MySqlServerVersion(new Version(8, 0, 29))));
+            services.AddDbContextFactory<AppDbContext>(options =>
+                options.UseSqlite("Data Source=nureaper_dev.db"), ServiceLifetime.Scoped);
+            // services.AddDbContext<AppDbContext>(options =>
+            // options.UseMySql(configuration.GetConnectionString("DefaultConnection"),
+            //     new MySqlServerVersion(new Version(8, 0, 29))));
 
             return services;
         }

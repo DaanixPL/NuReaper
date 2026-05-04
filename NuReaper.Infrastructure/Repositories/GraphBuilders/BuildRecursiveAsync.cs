@@ -1,10 +1,10 @@
 using System.Collections.Immutable;
 using NuReaper.Application.DTOs;
-using NuReaper.Application.DTOs.Graph;
 using Microsoft.Extensions.Logging;
 using NuReaper.Application.Interfaces.Parsers;
 using NuReaper.Infrastructure.Repositories.GraphBuilders.HelperClasses;
 using NuReaper.Infrastructure.Repositories.GraphBuilders.Interfaces;
+using NuReaper.Domain.Entities.Graph;
 
 namespace NuReaper.Infrastructure.Repositories.GraphBuilders
 {
@@ -45,7 +45,7 @@ namespace NuReaper.Infrastructure.Repositories.GraphBuilders
 
             var nodeId = context.GetOrAddNodeId(packageKey);
 
-            context.TryAddNode(new GraphNodeDto
+            context.TryAddNode(new GraphNode
             {
                 Id = nodeId,
                 Name = packageName,
@@ -62,7 +62,7 @@ namespace NuReaper.Infrastructure.Repositories.GraphBuilders
             if (currentPath.Contains(packageKey))
             {
                 _logger.LogWarning("Cycle detected: {Path} -> {Package}",  string.Join(" -> ", currentPath), packageKey);
-                context.Cycles.Add(new CycleDto
+                context.Cycles.Add(new Cycle
                 {
                     Path = currentPath.Reverse().Reverse().ToList()
                 });
@@ -154,7 +154,7 @@ namespace NuReaper.Infrastructure.Repositories.GraphBuilders
                     
                     var depNodeId = context.GetOrAddNodeId(depKey);
 
-                    var edge = new GraphEdgeDto
+                    var edge = new GraphEdge
                     {
                         FromId = nodeId,
                         ToId = depNodeId,

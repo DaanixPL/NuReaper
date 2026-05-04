@@ -14,7 +14,7 @@ namespace NuReaper.Infrastructure.Repositories.Scanners.Finders
         }
         public List<string> Execute(IList<Instruction> instructions, int callIndex, IMethod method)
         {
-             var args = new List<string>();
+            var args = new List<string>();
             int paramCount = method.MethodSig?.Params.Count ?? 0;
 
             // Walk backwards to find arguments

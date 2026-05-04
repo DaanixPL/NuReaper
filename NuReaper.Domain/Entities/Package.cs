@@ -1,4 +1,4 @@
-using NuReaper.Domain.Entities;
+using NuReaper.Domain.Entities.Graph;
 
 namespace NuReaper.Domain.Entities
 {
@@ -18,8 +18,6 @@ namespace NuReaper.Domain.Entities
         public long Downloads { get; set; }
         public long FileSize { get; set; }
 
-        public float ThreatLevel { get; set; } // 1-100 (1- nothing to worry about, 100 - critical)
-
         public DateTime LastScanDate { get; set; } = DateTime.UtcNow;
 
         // metadata fields for auditing and tracking
@@ -27,7 +25,24 @@ namespace NuReaper.Domain.Entities
         public DateTime UpdatedDate { get; set; } = DateTime.UtcNow;
 
         // Scans associated with this package
+        public Guid LastScanId { get; set; }
         public List<Scan> Scans { get; set; } = new List<Scan>();
-        public List<PackageDependency> Dependencies { get; set; } = new List<PackageDependency>();
+        public DependencyGraph? DependencyGraph { get; set; }
+
+        public bool IsRecentlyScanCached(int cacheDaysExpiry = 7)
+        {
+            if (!Scans.Any())
+                return false;
+            
+            var lastScan = Scans.OrderByDescending(s => s.ScanDate).First();
+            return (DateTime.UtcNow - lastScan.ScanDate).TotalDays < cacheDaysExpiry;
+        }
+        public List<ScanFinding> GetLatestFindings()
+        {
+            return Scans
+                .OrderByDescending(s => s.ScanDate)
+                .FirstOrDefault()
+                ?.Findings ?? new List<ScanFinding>();
+        }
     }
 }
