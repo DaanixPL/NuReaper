@@ -36,7 +36,7 @@ namespace NuReaper.Api
             builder.Services.AddTransient(typeof(IPipelineBehavior<,>), typeof(ValidationBehavior<,>));
 
             Log.Logger = new LoggerConfiguration()
-                .MinimumLevel.Verbose()
+                .MinimumLevel.Information()
                 .WriteTo.Console(restrictedToMinimumLevel: Serilog.Events.LogEventLevel.Debug ,outputTemplate: "[{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} {Level:u3}] {Message:lj}{NewLine}{Exception}")
                 .WriteTo.File(
                     restrictedToMinimumLevel: Serilog.Events.LogEventLevel.Verbose,

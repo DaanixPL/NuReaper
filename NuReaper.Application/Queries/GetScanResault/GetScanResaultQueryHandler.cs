@@ -3,8 +3,6 @@ using MediatR;
 using NuReaper.Application.Interfaces.Jobs;
 using NuReaper.Application.Responses;
 using NuReaper.Application.Validators.Exceptions;
-using NuReaper.Domain.Abstractions;
-using NuReaper.Domain.Entities;
 
 namespace NuReaper.Application.Queries.GetScanResult
 {
@@ -24,7 +22,7 @@ namespace NuReaper.Application.Queries.GetScanResult
             var resultJobService = await _scanJobService.GetScanJobStatusAsync(request.JobId, cancellationToken);
             if (resultJobService == null)
                 throw new NotFoundException($"Scan job", request.JobId.ToString());
-            var scanJobStatus = _mapper.Map<ScanJobStatusResponse>(result);
+            var scanJobStatus = _mapper.Map<ScanJobStatusResponse>(resultJobService);
             return scanJobStatus;
         }
     }

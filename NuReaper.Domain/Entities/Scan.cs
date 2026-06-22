@@ -6,7 +6,6 @@ namespace NuReaper.Domain.Entities
         public Guid PackageId { get; set; }
 
         // Scan information
-        public required string NormalizedKey { get; set; }
         public required string Version { get; set; }
 
         public DateTime ScanDate { get; set; } = DateTime.UtcNow;

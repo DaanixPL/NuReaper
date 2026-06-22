@@ -1,3 +1,4 @@
+using NuReaper.Domain.Entities.DataFlow;
 using NuReaper.Domain.Entities.Graph;
 
 namespace NuReaper.Domain.Entities

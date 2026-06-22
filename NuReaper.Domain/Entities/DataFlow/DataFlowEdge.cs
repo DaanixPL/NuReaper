@@ -2,12 +2,12 @@ using NuReaper.Domain.Enums;
 
 namespace NuReaper.Domain.Entities.DataFlow
 {
-    public class DataFlowEdge
+    public readonly struct DataFlowEdge
     {
-        public string FromId { get; set; } = string.Empty;
-        public string ToId { get; set; } = string.Empty;
-        public DataFlowEdgeType EdgeType { get; set; }
-
-        public int? ArgumentIndex { get; set; } 
+        public int Id { get; init; }
+        public int FromId { get; init; }
+        public int ToId { get; init; }
+        public DataFlowEdgeType EdgeType { get; init; }
+        public int ArgumentIndex { get; init; } // -1 = null
     }
 }

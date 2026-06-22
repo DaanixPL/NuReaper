@@ -18,6 +18,11 @@ namespace NuReaper.Infrastructure.Repositories
             await using var _context = await _contextFactory.CreateDbContextAsync(cancellationToken);
             await _context.Packages.AddAsync(package, cancellationToken);
         }
+        public async Task AddPackagesAsync(IEnumerable<Package> packages, CancellationToken cancellationToken = default)
+        {
+            await using var _context = await _contextFactory.CreateDbContextAsync(cancellationToken);
+            await _context.Packages.AddRangeAsync(packages, cancellationToken);
+        }
         public async Task RemovePackageAsync(Package package, CancellationToken cancellationToken = default)
         {
             await using var _context = await _contextFactory.CreateDbContextAsync(cancellationToken);
@@ -44,10 +49,10 @@ namespace NuReaper.Infrastructure.Repositories
 
         public async Task<List<Package>> GetPackagesByNormalizedKeyAsync(IEnumerable<string> normalizedKeys, CancellationToken cancellationToken = default)
         {
+            await using var _context = await _contextFactory.CreateDbContextAsync(cancellationToken);
             return await _context.Packages
                 .AsNoTracking()
                 .Include(p => p.Scans)
-                .Include(p => p.Dependencies)
                 .Where(p => normalizedKeys.Contains(p.NormalizedKey))
                 .ToListAsync(cancellationToken);
         }

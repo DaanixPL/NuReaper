@@ -6,6 +6,7 @@ namespace NuReaper.Domain.Entities
     {
         public Guid Id { get; set; } = Guid.NewGuid();
         public Guid ScanId { get; set; } 
+        public Guid PackageId { get; set; }
 
         // Finding details
         public ScanFindingType Type { get; set; }

@@ -7,20 +7,20 @@ namespace NuReaper.Infrastructure.Repositories.DataFlow
         private readonly Dictionary<string, ModuleDefMD> _modules
             = new(StringComparer.OrdinalIgnoreCase);
 
-        private readonly Dictionary<string, string> _assemblyToPackage
+        private readonly Dictionary<string, int> _assemblyToPackageId
             = new(StringComparer.OrdinalIgnoreCase);
 
-        public void Register(ModuleDefMD module, string packageName)
+        public void Register(ModuleDefMD module, int packageId)
         {
             var name = module.Assembly?.Name.String;
             if (name is null) return;
 
             _modules.TryAdd(name, module);
-            _assemblyToPackage.TryAdd(name, packageName);
+            _assemblyToPackageId.TryAdd(name, packageId);
         }
 
-        public string ResolvePackageName(string assemblyName)
-            => _assemblyToPackage.TryGetValue(assemblyName, out var pkg) ? pkg : assemblyName;
+        public int ResolvePackageId(string assemblyName)
+            => _assemblyToPackageId.TryGetValue(assemblyName, out var pkgId) ? pkgId : -1;
 
         public AssemblyDef? Resolve(IAssembly assembly, ModuleDef sourceModule)
         {

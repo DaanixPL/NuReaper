@@ -8,7 +8,7 @@ namespace NuReaper.Application.DTOs.DataFlow
         public DataFlowNodeType Type { get; set; }
         public string Name { get; set; } = string.Empty;
         public string TypeFullName { get; set; } = string.Empty;
-        public string PackageName { get; set; } = string.Empty;
+        public int PackageId { get; set; }
         public string AssemblyName { get; set; } = string.Empty;
 
         public string? ContainingMethodNodeId { get; set; }
