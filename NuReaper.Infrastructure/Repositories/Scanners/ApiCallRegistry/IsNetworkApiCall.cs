@@ -1,19 +1,10 @@
-using dnlib.DotNet;
 using Microsoft.Extensions.Logging;
-using NuReaper.Infrastructure.Repositories.Scanners.ApiCallRegistry.Interfaces;
 
 namespace NuReaper.Infrastructure.Repositories.Scanners.ApiCallRegistry
 {
-    public class IsNetworkApiCall : IIsNetworkApiCall
+    public static class IsNetworkApiCall
     {
-        private readonly ILogger<IsNetworkApiCall> _logger;
-
-        public IsNetworkApiCall(ILogger<IsNetworkApiCall> logger)        
-        {
-            _logger = logger;
-        }
-
-         private static readonly string[] NetworkApiCalls = new[]
+        private static readonly string[] NetworkApiCalls = new[]
         {
             // ========== HTTP/HTTPS ==========
             // HttpClient
@@ -192,13 +183,67 @@ namespace NuReaper.Infrastructure.Repositories.Scanners.ApiCallRegistry
             "WinHttpOpenRequest",
             "WinHttpSendRequest",
         };
-
-        public bool Execute(string methodFullName)
+        private static readonly HashSet<string> NetworkApiCallsSet;
+        static IsNetworkApiCall()
         {
-            _logger.LogTrace("[IsNetworkApiCall] Checking if '{MethodFullName}' is a network API call...", methodFullName);
-            bool isNetworkApiCall = NetworkApiCalls.Any(api => methodFullName.Contains(api));
-            _logger.LogTrace("[IsNetworkApiCall] Result: {IsNetworkApiCall}", isNetworkApiCall);
-            return isNetworkApiCall;
+            NetworkApiCallsSet = new HashSet<string>(NetworkApiCalls, StringComparer.OrdinalIgnoreCase);
+        }
+        public static bool Execute(string methodFullName)
+        {
+            if (string.IsNullOrEmpty(methodFullName))
+            {
+                Console.WriteLine("Method full name is null or empty.");
+                return false;
+            }
+
+            if (NetworkApiCallsSet.Contains(methodFullName))
+            {
+                Console.WriteLine("Method full name is a known network API call: " + methodFullName);
+                return true;                
+            }
+
+            int parenIndex = methodFullName.IndexOf('(');
+            string withoutParams = parenIndex >= 0
+                ? methodFullName.Substring(0, parenIndex)
+                : methodFullName;
+
+            int lastSeparator = withoutParams.LastIndexOf("::", StringComparison.Ordinal);
+            if (lastSeparator != -1)
+            {
+                // Extract just the method name (after ::)
+                string cleanMethodName = withoutParams.Substring(lastSeparator + 2);
+                if (NetworkApiCallsSet.Contains(cleanMethodName))
+                    return true;
+
+                // Extract "ClassName::MethodName" (last two segments before params)
+                string afterReturnType = withoutParams;
+                int spaceBeforeClass = withoutParams.LastIndexOf(' ');
+                if (spaceBeforeClass >= 0)
+                    afterReturnType = withoutParams.Substring(spaceBeforeClass + 1);
+
+                // e.g. "Process::Start"
+                string classAndMethod = afterReturnType;
+                int classStart = afterReturnType.LastIndexOf('.', lastSeparator - (withoutParams.Length - afterReturnType.Length));
+
+                // Build "ShortClass::Method" for sink matching
+                // Walk back to find the last dot before ::
+                int separatorInShort = afterReturnType.LastIndexOf("::", StringComparison.Ordinal);
+                if (separatorInShort > 0)
+                {
+                    int dotBeforeClass = afterReturnType.LastIndexOf('.', separatorInShort - 1);
+                    string shortForm = dotBeforeClass >= 0
+                        ? afterReturnType.Substring(dotBeforeClass + 1)
+                        : afterReturnType;
+
+                    if (NetworkApiCallsSet.Contains(shortForm))
+                    {
+                        Console.WriteLine("Method full name is a known network API call (short form): " + methodFullName);
+                        return true;
+                    }
+                }
+            }
+            Console.WriteLine("Method full name is not a known network API call: " + methodFullName);
+            return false;
         }
     }
 }

@@ -1,18 +1,15 @@
-using dnlib.DotNet;
-using dnlib.DotNet.Emit;
-using NuReaper.Application.DTOs;
+using NuReaper.Domain.Entities;
+using NuReaper.Domain.Entities.DataFlow;
 
 namespace NuReaper.Infrastructure.Repositories.Scanners.Detectors.Interfaces
 {
     public interface IPatternDetector
     {
-        bool CanDetect(Instruction instruction);
-
-        List<FindingSummaryDto> Detect(
-            IList<Instruction> instructions,
-            int instructionIndex,
-            TypeDef type,
-            MethodDef method,
-            HashSet<int> processedIndices);
+        List<ScanFinding> Detect(
+            DataFlowGraph graph,
+            Dictionary<Package, int> packageIdToGuid,
+            Dictionary<int, List<int>> incomingEdgesLookup,
+            Guid scanId);
+        
     }
 }

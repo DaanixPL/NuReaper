@@ -8,25 +8,18 @@ namespace NuReaper.Infrastructure.Repositories
         private readonly AppDbContext _context;
         private readonly IScanRepository _scanRepository;
         private readonly IPackageRepository _packageRepository;
-        private readonly IDependencyRepository _dependencyRepository;
-
 
         private bool _disposed = false;
 
 
-        public UnitOfWork(AppDbContext context, IScanRepository scanRepository, IPackageRepository packageRepository, IDependencyRepository dependencyRepository)
+        public UnitOfWork(AppDbContext context, IScanRepository scanRepository, IPackageRepository packageRepository)
         {
             _context = context ?? throw new ArgumentNullException(nameof(context));
             _scanRepository = scanRepository ?? throw new ArgumentNullException(nameof(scanRepository));
             _packageRepository = packageRepository ?? throw new ArgumentNullException(nameof(packageRepository));
-            _dependencyRepository = dependencyRepository ?? throw new ArgumentNullException(nameof(dependencyRepository));
         }
-        public IScanRepository ScanRepository => _scanRepository;
-
-        public IDependencyRepository DependencyRepository => _dependencyRepository;
-
-        public IPackageRepository PackageRepository => _packageRepository;
-        
+        public IScanRepository Scans => _scanRepository;
+        public IPackageRepository Packages => _packageRepository;
 
         public async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default) 
         {

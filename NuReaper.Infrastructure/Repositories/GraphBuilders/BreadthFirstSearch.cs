@@ -1,11 +1,11 @@
-using NuReaper.Application.DTOs;
+using NuReaper.Domain.Entities.Graph;
 using NuReaper.Infrastructure.Repositories.GraphBuilders.Interfaces;
 
 namespace NuReaper.Infrastructure.Repositories.GraphBuilders
 {
     public class BreadthFirstSearch : IBreadthFirstSearch
     {
-        public Task<List<string>> Execute(DependencyGraphDto graph, string start, string target)
+        public Task<List<string>> Execute(DependencyGraph graph, string start, string target)
         {
             var startNode = graph.Nodes.FirstOrDefault(n => $"{n.Name}@{n.Version}" == start);
             if (startNode == null) return Task.FromResult(new List<string>());

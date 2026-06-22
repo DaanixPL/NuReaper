@@ -19,18 +19,30 @@ namespace NuReaper.Application.Commands.ScanPackage
 
         public async Task<Guid> Handle(ScanPackageCommand request, CancellationToken cancellationToken)
         {
-            string urlToDownload = request.url.Replace("nuget.org/packages", "nuget.org/api/v2/package");
+            var source = request.url.Trim();
+
+            if (source.Contains("nuget.org/packages", StringComparison.OrdinalIgnoreCase))
+            {
+                source = source.Replace("nuget.org/packages", "nuget.org/api/v2/package", StringComparison.OrdinalIgnoreCase);
+            }
+
+            var isLocal = source.StartsWith("file://", StringComparison.OrdinalIgnoreCase)
+                || (!Uri.TryCreate(source, UriKind.Absolute, out var uri) || uri.IsFile);
 
             if (_env.IsProduction())
             {
-                if (!urlToDownload.StartsWith("https://www.nuget.org/api/v2/package/"))
+                if (isLocal)
+                {
+                    throw new ArgumentException("Local package scanning is disabled in production.");
+                }
+
+                if (!source.StartsWith("https://www.nuget.org/api/v2/package/", StringComparison.OrdinalIgnoreCase))
                 {
                     _logger.LogWarning("Invalid URL received in production environment: {Url}", request.url);
                     throw new ArgumentException("Invalid URL. Only packages from nuget.org are allowed.");
                 }
             }
-
-            var jobId = await _scanJobService.EnqueueJob(urlToDownload, cancellationToken);
+            var jobId = await _scanJobService.EnqueueJob(source, cancellationToken);
             return jobId;
         }
 

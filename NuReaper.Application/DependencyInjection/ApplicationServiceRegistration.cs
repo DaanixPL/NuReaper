@@ -17,7 +17,7 @@ namespace NuReaper.Application.DependencyInjection
             services.AddValidatorsFromAssemblyContaining<ScanPackageCommandValidator>();
             services.AddTransient(typeof(IPipelineBehavior<,>), typeof(ValidationBehavior<,>));
 
-            // services.AddAutoMapper(cfg => cfg.AddMaps(typeof(UserMappingProfile).Assembly));
+            services.AddAutoMapper(cfg => cfg.AddMaps(typeof(ApplicationServiceRegistration).Assembly));
 
             return services;
         }

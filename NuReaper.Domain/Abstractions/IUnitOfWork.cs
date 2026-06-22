@@ -2,9 +2,9 @@
 {
     public interface IUnitOfWork : IDisposable
     {
-        public IScanRepository ScanRepository { get; }
-        public IDependencyRepository DependencyRepository { get; }
-        public IPackageRepository PackageRepository { get; }
+        IScanRepository Scans { get; }
+        IPackageRepository Packages { get; }
+
         Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
     }
 }

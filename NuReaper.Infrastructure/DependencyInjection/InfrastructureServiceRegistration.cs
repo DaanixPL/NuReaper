@@ -3,9 +3,6 @@ using NuReaper.Domain.Abstractions;
 using NuReaper.Infrastructure.Repositories;
 using Microsoft.Extensions.Configuration;
 using NuReaper.Application.Interfaces.Scanners;
-using NuReaper.Application.Interfaces.Dependencies;
-using NuReaper.Infrastructure.Repositories.Scanners.Analysis.Interfaces;
-using NuReaper.Infrastructure.Repositories.Scanners.Analysis;
 
 
 
@@ -20,7 +17,7 @@ namespace NuReaper.Infrastructure.DependencyInjection
             services.AddScoped<IScanRepository, ScanRepository>();
             services.AddScoped<IAssemblyScanner, AssemblyScanner>();
             services.AddScoped<IDependencyRepository, DependencyRepository>();
-            services.AddScoped<INetworkApiCallScan, NetworkApiCallScan>();
+            // services.AddScoped<INetworkApiCallScan, NetworkApiCallScan>();
 
             CorsServiceRegistration.AddCorsServices(services);
             DatabaseServiceRegistration.AddDatabaseServices(services, configuration);
@@ -29,6 +26,7 @@ namespace NuReaper.Infrastructure.DependencyInjection
             GraphBuilderServiceRegistration.AddGraphBuilderServices(services, configuration);
             FileHelpersServiceRegistration.AddFileHelpersServices(services);
             JobServiceRegistration.AddJobServices(services);
+            DataFlowServiceRegistration.AddDataFlowServices(services);
             return services;
         }
     }

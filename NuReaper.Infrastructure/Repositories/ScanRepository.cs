@@ -19,7 +19,7 @@ namespace NuReaper.Infrastructure.Repositories
                 
             if (!exists)
             {
-                throw new KeyNotFoundException($"Package with ID {scan.PackageId} not found"); // Dodaj castom exception
+                throw new KeyNotFoundException($"Package with ID {scan.PackageId} not found"); // TODO: Dodaj castom exception
             }
 
             _context.Scans.Add(scan);
@@ -42,7 +42,7 @@ namespace NuReaper.Infrastructure.Repositories
 
             if (missingPackageIds.Any())
             {
-                throw new KeyNotFoundException($"Packages with IDs {string.Join(", ", missingPackageIds)} not found"); // Dodaj castom exception
+                throw new KeyNotFoundException($"Packages with IDs {string.Join(", ", missingPackageIds)} not found"); // TODO: Dodaj castom exception
             }
 
             _context.Scans.AddRange(scanList);
@@ -56,7 +56,7 @@ namespace NuReaper.Infrastructure.Repositories
 
             if (rowsDeleted == 0)
             {
-                throw new KeyNotFoundException($"Scan with ID {scanId} not found"); // Dodaj castom exception
+                throw new KeyNotFoundException($"Scan with ID {scanId} not found"); // TODO: Dodaj castom exception
             }
         }
         public Task<Scan?> GetScanByIdAsync(string normalizedKey, CancellationToken cancellationToken = default)

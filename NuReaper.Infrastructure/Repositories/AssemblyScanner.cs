@@ -1,88 +1,93 @@
-using NuReaper.Application.DTOs;
-using NuReaper.Application.Interfaces.Dependencies;
+using Microsoft.Extensions.Logging;
 using NuReaper.Application.Interfaces.Scanners;
-using NuReaper.Application.Responses;
-using NuReaper.Infrastructure.Repositories.Scanners.Analysis.Interfaces;
-using NuReaper.Infrastructure.Repositories.Scanners.RiskCalculation.Interfaces;
+using NuReaper.Domain.Entities;
+using NuReaper.Domain.Entities.DataFlow;
+using NuReaper.Infrastructure.Repositories.DataFlow.DataFlowPathBuilder.Interfaces;
+using NuReaper.Infrastructure.Repositories.Scanners.ApiCallRegistry;
+using NuReaper.Infrastructure.Repositories.Scanners.Detectors.Interfaces;
+using System.Collections.Concurrent;
 
 namespace NuReaper.Infrastructure.Repositories
 {
     public class AssemblyScanner : IAssemblyScanner
     {   
-        private readonly INetworkApiCallScan _networkApiCallScan;
-        private readonly IDependencyGraphBuilder _dependencyGraphBuilder;
-        private readonly ICalculateThreatLevel _calculateThreatLevel;
-
-        public AssemblyScanner(INetworkApiCallScan networkApiCallScan, IDependencyGraphBuilder dependencyGraphBuilder, ICalculateThreatLevel calculateThreatLevel)
+        private static readonly HashSet<NuReaper.Domain.Enums.DataFlowEdgeType> StructuralEdges = new()
         {
-            _networkApiCallScan = networkApiCallScan;
-            _dependencyGraphBuilder = dependencyGraphBuilder;
-            _calculateThreatLevel = calculateThreatLevel;
+            NuReaper.Domain.Enums.DataFlowEdgeType.Calls,
+            NuReaper.Domain.Enums.DataFlowEdgeType.Targets,
+            NuReaper.Domain.Enums.DataFlowEdgeType.Contains
+        };
+
+        private readonly IPatternDetector[] _patternDetectors;
+        private readonly IDataFlowPathBuilder _dataFlowPathBuilder;
+        private readonly ILogger<AssemblyScanner> _logger;
+
+        public AssemblyScanner(IEnumerable<IPatternDetector> patternDetectors, IDataFlowPathBuilder dataFlowPathBuilder, ILogger<AssemblyScanner> logger)
+        {
+            _patternDetectors = patternDetectors.ToArray();
+            _dataFlowPathBuilder = dataFlowPathBuilder;
+            _logger = logger;
         }
 
-        public async Task<ScanPackageResultResponse> ScanPackageAsync(string url, CancellationToken cancellationToken)
+        public Task<ScanPackageResult> ScanPackageAsync(string rootPackageName, string rootPackageVersion, DataFlowGraph graph, Dictionary<Package, int> packageToId, Guid jobId, CancellationToken cancellationToken)
         {
             var startTime = DateTime.UtcNow;
-            // TODO: Mozna dodac cache wynikow + dodawanie do db. Oraz zapis w db czas skanowania.
-            int maxDepth = 20; // TODO: Make this configurable
-            var graph = await _dependencyGraphBuilder.BuildGraphAsync(url, maxDepth, null, cancellationToken);
-
-            var uniquePackages = graph.Nodes.GroupBy(n => new {n.Name, n.Version}).Select(g => g.First()).ToList();
-
-            var rootParts = graph.RootPackage.Split('@');
-
-            if (rootParts.Length != 2)
+            var findings = new ConcurrentBag<ScanFinding>();
+            
+            ScanPackageResult resault = new ScanPackageResult
             {
-                throw new InvalidOperationException($"Invalid RootPackage format: {graph.RootPackage}. Expected format: 'name@version'");
-            }
-
-            ScanPackageResultResponse resault = new ScanPackageResultResponse
-            {
-                RootPackageName = rootParts[0],
-                RootPackageVersion = rootParts[1],
+                RootPackageName = rootPackageName,
+                RootPackageVersion = rootPackageVersion,
+                DependencyGraph = graph.DependencyGraph,
             };
-
-            var cpuCount = Environment.ProcessorCount;
-            var semaphore = new SemaphoreSlim(Math.Max(1, cpuCount - 1), Math.Max(1, cpuCount - 1));
 
             var now = DateTime.UtcNow;
 
-            var scanTasks = uniquePackages.Select(async node =>
+            var incomingEdges = graph.Edges
+                .Where(e => !StructuralEdges.Contains(e.EdgeType))
+                .GroupBy(e => e.ToId)
+                .ToDictionary(g => g.Key, g => g.Select(e => e.FromId).ToList());
+
+            var nodesLookup = graph.Nodes.ToDictionary(n => n.Id);
+
+            var visited = new HashSet<int>();
+
+            cancellationToken.ThrowIfCancellationRequested();
+
+            foreach (var pattern in _patternDetectors)
             {
-                await semaphore.WaitAsync(cancellationToken);
-                try
+                var patternFindings = pattern.Detect(graph, packageToId, incomingEdges, jobId);
+                if (patternFindings != null && patternFindings.Count > 0)
                 {
-                    var package = await _networkApiCallScan.Execute($"https://www.nuget.org/api/v2/package/{node.Name}/{node.Version}", cancellationToken);
-                    return new PackageDto
+                    foreach (var finding in patternFindings)
                     {
-                        PackageName = node.Name,
-                        Author = "Nuget", // dodac
-                        Version = node.Version,
-                        Sha256Hash = package.Sha256Hash,
-                        ThreatLevel = _calculateThreatLevel.Execute(package.Findings),
-                        Findings = package.Findings,
-                        TotalFindings = package.Findings.Count,
-                        ScannedTime = new DateTime(now.Year, now.Month, now.Day, now.Hour, now.Minute, now.Second, DateTimeKind.Utc),
-                    };
+                        findings.Add(finding);
+                    }
+                    break;
                 }
-                finally
+            }
+            List<Package> packages = new List<Package>();
+            foreach (var package in packageToId.Keys)
+            {
+                var packageFindings = findings.Where(f => f.PackageId == package.Id).ToList();
+                if (packageFindings.Count > 0)
                 {
-                    semaphore.Release();
+                    var scan = new Scan
+                    {
+                        PackageId = package.Id,
+                        Version = package.Version,
+                        Findings = packageFindings,
+                        ThreatLevel = (float)packageFindings.Average(f => f.DangerLevel),
+                    };
+                    package.Scans.Add(scan);
+                    packages.Add(package);
                 }
-            });
-
-            var packages = await Task.WhenAll(scanTasks).ConfigureAwait(false);
-            resault.Packages.AddRange(packages);
-
-            resault.TotalPackages = resault.Packages.Count;
-            resault.TotalFindingsFromAllPackages = resault.Packages.Sum(p => p.TotalFindings);
-            resault.ThreatLevelAllPackages = _calculateThreatLevel.Execute(resault.Packages.SelectMany(p => p.Findings).ToList()); // lepiej to zrobic
-            resault.DependencyGraph = graph;
-            resault.ScannedTimeAllPackages = DateTime.UtcNow;
-
-            Console.WriteLine($"[&] findings in {(DateTime.UtcNow - startTime).TotalSeconds} seconds.");
+            }
+            resault.Packages = packages;
+            float ScanTime = (float)(DateTime.UtcNow - startTime).TotalSeconds;
+            resault.ScannedTimeAllPackages = ScanTime;
             // TODO: Tutaj czysczenie pakietow skanowanych
-            return resault;
+            return Task.FromResult(resault);
         }
     }
 }

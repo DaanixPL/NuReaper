@@ -1,10 +1,9 @@
 using System.Collections.Immutable;
-using NuReaper.Application.DTOs;
-using NuReaper.Application.DTOs.Graph;
 using NuReaper.Application.Interfaces.Dependencies;
 using Microsoft.Extensions.Logging;
 using NuReaper.Infrastructure.Repositories.GraphBuilders.HelperClasses;
 using NuReaper.Infrastructure.Repositories.GraphBuilders.Interfaces;
+using NuReaper.Domain.Entities.Graph;
 
 namespace NuReaper.Infrastructure.Repositories
 {
@@ -30,19 +29,13 @@ namespace NuReaper.Infrastructure.Repositories
             _logger = logger;
             _downloadAndExtractNuspecAsync = downloadAndExtractNuspecAsync;
         }
-        public async Task<DependencyGraphDto> BuildGraphAsync(
-            string url,
+        public async Task<DependencyGraph> BuildGraphAsync(
+            string rootPackageName,
+            string rootPackageVersion,
             int maxDepth,
             string? targetFramework,
             CancellationToken cancellationToken = default)
         {
-            var uri = new Uri(url);
-            var idx = uri.AbsolutePath.IndexOf("/package/", StringComparison.OrdinalIgnoreCase);
-            if (idx < 0)
-                throw new ArgumentException("Invalid URL format. Expected format: https://www.nuget.org/packages/{packageId}/{version}");
-            string rootPackageName = uri.AbsolutePath.Substring(idx + "/package/".Length).TrimStart('/').Split('/')[0];
-            string rootPackageVersion = uri.AbsolutePath.Substring(idx + "/package/".Length).TrimStart('/').Split('/')[1];
-
             if (string.IsNullOrEmpty(rootPackageName) || string.IsNullOrEmpty(rootPackageVersion))
                 throw new ArgumentException("Package name or version is missing in the URL.");
 
@@ -87,7 +80,7 @@ namespace NuReaper.Infrastructure.Repositories
                 maxDepth,
                 cancellationToken);
 
-            return new DependencyGraphDto
+            return new DependencyGraph
             {
                 RootPackage = $"{rootPackageName}@{rootPackageVersion}",
                 Nodes = context.Nodes.ToList(),
@@ -103,7 +96,7 @@ namespace NuReaper.Infrastructure.Repositories
             string nuspecPath,
             CancellationToken cancellationToken = default)
         {
-            var graph = await BuildGraphAsync($"https://www.nuget.org/packages/{packageName}/{version}", 20, null, cancellationToken);
+            var graph = await BuildGraphAsync(packageName, version, 20, null, cancellationToken);
             return graph.Cycles.Any();
         }
 
@@ -118,19 +111,19 @@ namespace NuReaper.Infrastructure.Repositories
             if (fromParts.Length != 2)
                 throw new ArgumentException("Format: name@version");
 
-            var graph = await BuildGraphAsync($"https://www.nuget.org/packages/{fromParts[0]}/{fromParts[1]}", 20, null, cancellationToken);
+            var graph = await BuildGraphAsync(fromParts[0], fromParts[1], 20, null, cancellationToken);
             
             return await _breadthFirstSearch.Execute(graph, fromPackage, toPackage);
         }
         // interface?
-        private DependencyGraphDto CreateEmptyGraph(string packageName, string version)
+        private DependencyGraph CreateEmptyGraph(string packageName, string version)
         {
-            return new DependencyGraphDto
+            return new DependencyGraph
             {
                 RootPackage = $"{packageName}@{version}",
-                Nodes = new List<GraphNodeDto>(),
-                Edges = new List<GraphEdgeDto>(),
-                Cycles = new List<CycleDto>(),
+                Nodes = new List<GraphNode>(),
+                Edges = new List<GraphEdge>(),
+                Cycles = new List<Cycle>(),
                 GeneratedAt = DateTime.UtcNow
             };
         }
