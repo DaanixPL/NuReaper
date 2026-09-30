@@ -1,6 +1,6 @@
 # NuReaper — NuGet Package Security Scanner
 
-> ⚠️ **Work in Progress** — The project is actively developed. Core scanning engine is functional; database persistence, caching, and full test coverage are planned for upcoming iterations.
+> ⚠️ **Work in Progress** — The project is actively developed. Core scanning engine is rebulding
 
 **NuReaper** is a .NET 8 backend API that automatically analyzes the security of NuGet packages. You provide a link to any NuGet package, and the system recursively downloads its entire dependency tree, decompiles the compiled code, and scans every method for malicious patterns — returning a detailed threat report.
 
